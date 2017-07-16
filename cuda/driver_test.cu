@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
 
 int main(int argc, char **argv) {
-=======
-#include <stdio.h> 
-
-int main() {
->>>>>>> 9245312cc3e5c713b5bd2bf23eacdeec5bfe67b0
   int nDevices;
 
   cudaGetDeviceCount(&nDevices);
@@ -25,7 +19,6 @@ int main() {
     printf("  Peak Memory Bandwidth (GB/s): %f\n\n",
            2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
   }
-<<<<<<< HEAD
 
   if (argc != 2) {
       printf("usage: driver_test <Image_Path>\n");
@@ -42,6 +35,4 @@ int main() {
   imshow("Display Image", image);
   waitKey(0);
   return 0;
-=======
->>>>>>> 9245312cc3e5c713b5bd2bf23eacdeec5bfe67b0
 }
