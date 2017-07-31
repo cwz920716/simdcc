@@ -47,19 +47,33 @@ int main() {
   auto nvvm_annotations_md = TheModule->getOrInsertNamedMetadata(nvvm_annotations);
 
   auto Void = Type::getVoidTy(TheContext);
-  auto kernel_type = FunctionType::get(Void, param_types, false);
+  auto Float = Type::getFloatTy(TheContext);
+  auto FloatGlobalPtr = PointerType::get(Float, 1);
+  SmallVector<Type *, 3> kernel_param_types(3, FloatGlobalPtr);
+  auto kernel_type = FunctionType::get(Void, kernel_param_types, false);
   StringRef kernel_name("kernel");
   Function *kernel_func = Function::Create(kernel_type, Function::ExternalLinkage, kernel_name, TheModule.get());
+  std::string names[] = {"A", "B", "C"};
+  int i = 0;
+  for(auto &arg : kernel_func->args()) {
+    arg.setName(names[i++]);
+  }
+
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", kernel_func);
   Builder.SetInsertPoint(BB);
+  auto get_tid_x = Builder.CreateCall(read_tid_x, None, "id");
+  get_tid_x->setTailCall();
+  get_tid_x->setAttributes(attr_list);
   Builder.CreateRetVoid();
 
-  // auto md0_0 = MDNode::get(TheContext, ValueAsMetadata::get(TheModule->getFunction(kernel_name)));
   auto md0_0 = ValueAsMetadata::getConstant(kernel_func);
   StringRef kernel_str("kernel");
   auto md0_1 = MDString::get(TheContext, kernel_str);
-  Metadata *metas[] = { md0_0, md0_1 };
-  ArrayRef<Metadata *> metas_(metas, 2);
+  APInt i1(32, 1);
+  auto One = ConstantInt::get(Int32, i1);
+  auto md0_2 = ValueAsMetadata::getConstant(One);
+  Metadata *metas[] = { md0_0, md0_1, md0_2 };
+  ArrayRef<Metadata *> metas_(metas, 3);
   auto md0 = MDNode::get(TheContext, metas_);
   nvvm_annotations_md->addOperand(md0); 
 
