@@ -24,7 +24,6 @@ using namespace llvm;
 static LLVMContext TheContext;
 static IRBuilder<> Builder(TheContext);
 static std::unique_ptr<Module> TheModule;
-static std::map<std::string, Value *> NamedValues;
 
 int main() {
   TheModule = llvm::make_unique<Module>("ptx tutorial", TheContext);
@@ -52,10 +51,12 @@ int main() {
   SmallVector<Type *, 3> kernel_param_types(3, FloatGlobalPtr);
   auto kernel_type = FunctionType::get(Void, kernel_param_types, false);
   StringRef kernel_name("kernel");
+  std::map<std::string, Value *> NamedValues;
   Function *kernel_func = Function::Create(kernel_type, Function::ExternalLinkage, kernel_name, TheModule.get());
   std::string names[] = {"A", "B", "C"};
   int i = 0;
   for(auto &arg : kernel_func->args()) {
+    NamedValues[names[i]] = &arg;
     arg.setName(names[i++]);
   }
 
@@ -64,6 +65,19 @@ int main() {
   auto get_tid_x = Builder.CreateCall(read_tid_x, None, "id");
   get_tid_x->setTailCall();
   get_tid_x->setAttributes(attr_list);
+  auto ptrA = Builder.CreateGEP(Float, NamedValues["A"], get_tid_x);
+  ptrA->setName("ptrA");
+  auto ptrB = Builder.CreateGEP(Float, NamedValues["B"], get_tid_x);
+  ptrB->setName("ptrB");
+  auto ptrC = Builder.CreateGEP(Float, NamedValues["C"], get_tid_x);
+  ptrC->setName("ptrC");
+  auto valA = Builder.CreateLoad(ptrA, "valA");
+  valA->setAlignment(4);
+  auto valB = Builder.CreateLoad(ptrB, "valB");
+  valB->setAlignment(4);
+  auto valC = Builder.CreateFAdd(valA, valB, "valC");
+  auto storeC = Builder.CreateStore(valC, ptrC);
+  storeC->setAlignment(4);
   Builder.CreateRetVoid();
 
   auto md0_0 = ValueAsMetadata::getConstant(kernel_func);
