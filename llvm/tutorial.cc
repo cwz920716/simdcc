@@ -37,9 +37,9 @@ int main() {
   ArrayRef< Type *> param_types;
   auto read_tid_x_type = FunctionType::get(Int32, param_types, false);
   StringRef read_tid_x_name("llvm.nvvm.read.ptx.sreg.tid.x");
-  llvm::AttributeSet attr_list;
-  attr_list.addAttribute(TheContext, 0, Attribute::ReadNone);
-  attr_list.addAttribute(TheContext, 1, Attribute::NoUnwind);
+  llvm::AttributeList attr_list;
+  attr_list = attr_list.addAttribute(TheContext, 0, Attribute::ReadNone);
+  attr_list = attr_list.addAttribute(TheContext, 1, Attribute::NoUnwind);
   auto read_tid_x = TheModule->getOrInsertFunction(read_tid_x_name, read_tid_x_type, attr_list);
 
   StringRef nvvm_annotations("nvvm.annotations");
@@ -64,7 +64,8 @@ int main() {
   Builder.SetInsertPoint(BB);
   auto get_tid_x = Builder.CreateCall(read_tid_x, None, "id");
   get_tid_x->setTailCall();
-  get_tid_x->setAttributes(attr_list);
+  get_tid_x->setDoesNotAccessMemory();
+  get_tid_x->setDoesNotThrow();
   auto ptrA = Builder.CreateGEP(Float, NamedValues["A"], get_tid_x);
   ptrA->setName("ptrA");
   auto ptrB = Builder.CreateGEP(Float, NamedValues["B"], get_tid_x);

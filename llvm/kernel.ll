@@ -8,7 +8,7 @@ declare i32 @llvm.nvvm.read.ptx.sreg.tid.x() #0
 
 define void @kernel(float addrspace(1)* %A, float addrspace(1)* %B, float addrspace(1)* %C) {
 entry:
-  %id = tail call i32 @llvm.nvvm.read.ptx.sreg.tid.x()
+  %id = tail call i32 @llvm.nvvm.read.ptx.sreg.tid.x() #0
   %ptrA = getelementptr float, float addrspace(1)* %A, i32 %id
   %ptrB = getelementptr float, float addrspace(1)* %B, i32 %id
   %ptrC = getelementptr float, float addrspace(1)* %C, i32 %id

@@ -6,7 +6,7 @@
 .target sm_35
 .address_size 64
 
-	// .globl	kernel
+	// .globl	kernel          // -- Begin function kernel
                                         // @kernel
 .visible .entry kernel(
 	.param .u64 kernel_param_0,
@@ -15,13 +15,13 @@
 )
 {
 	.reg .f32 	%f<4>;
-	.reg .s32 	%r<2>;
-	.reg .s64 	%rd<8>;
+	.reg .b32 	%r<2>;
+	.reg .b64 	%rd<8>;
 
 // BB#0:                                // %entry
 	ld.param.u64 	%rd1, [kernel_param_0];
 	ld.param.u64 	%rd2, [kernel_param_1];
-	mov.u32	%r1, %tid.x;
+	mov.u32 	%r1, %tid.x;
 	ld.param.u64 	%rd3, [kernel_param_2];
 	mul.wide.s32 	%rd4, %r1, 4;
 	add.s64 	%rd5, %rd1, %rd4;
@@ -33,5 +33,5 @@
 	st.global.f32 	[%rd7], %f3;
 	ret;
 }
-
+                                        // -- End function
 
