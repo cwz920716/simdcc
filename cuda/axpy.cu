@@ -1,4 +1,4 @@
-#include <iostream>
+#include <stdio.h>
 
 __global__ void axpy(float a, float* x, float* y) {
   y[threadIdx.x] = a * x[threadIdx.x];
@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 
   // Print the results.
   for (int i = 0; i < kDataLen; ++i) {
-    std::cout << "y[" << i << "] = " << host_y[i] << "\n";
+    printf("y[%d] = %f\n", i, host_y[i]);
   }
 
   cudaDeviceReset();
