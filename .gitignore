@@ -1,5 +1,7 @@
 build
+data
 *~
 a.out
 *.ll
 *.ptx
+*.bc

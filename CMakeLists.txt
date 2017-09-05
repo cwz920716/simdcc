@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.4)
 
 project(SimdSim)
 
@@ -6,6 +6,12 @@ set (CMAKE_CXX_STANDARD 11)
 
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(Boost REQUIRED)
+
+find_package(LLVM REQUIRED CONFIG)
+add_definitions(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
+link_directories(${LLVM_LIBRARY_DIRS})
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
@@ -18,6 +24,3 @@ if (CUDA_FOUND)
 else()
   message("Error: CUDA not found!")
 endif()
-
-
-set(CMAKE_CXX_FLAG "-g -Wall")

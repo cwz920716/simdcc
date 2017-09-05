@@ -1,5 +1,5 @@
-#ifndef MEMORY_H
-#define MEMORY_H
+#ifndef _MEMORY_H
+#define _MEMORY_H
 
 #include <stdint.h>
 
@@ -52,4 +52,4 @@ class NdMemory: public BasicMemory {
 
 }  // namespace simdsim
 
-#endif
+#endif  // _MEMORY_H
