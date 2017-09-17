@@ -1,8 +1,6 @@
 #ifndef CUDA_UTIL_H_
 #define CUDA_UTIL_H_
 
-#include "glog/logging.h"
-
 // CUDA: various checks for different function calls.
 #define CUDA_CHECK(condition) \
   /* Code block avoids redefinition of cudaError_t error */ \

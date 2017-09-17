@@ -15,11 +15,12 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
+add_subdirectory(compiler)
 add_subdirectory(simulator)
 
 if (CUDA_FOUND)
   message("CUDA found")
-  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_20,code=sm_20)
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_35,code=sm_35)
   add_subdirectory(cuda)
 else()
   message("Error: CUDA not found!")

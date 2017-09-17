@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdio>
+#include "glog/logging.h"
 #include "cuda_util.h"
 
 // One block handles one row
