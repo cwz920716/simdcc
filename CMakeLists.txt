@@ -15,7 +15,7 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
-add_subdirectory(src)
+add_subdirectory(simulator)
 
 if (CUDA_FOUND)
   message("CUDA found")

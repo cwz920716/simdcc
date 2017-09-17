@@ -39,6 +39,15 @@ std::string MD2String(const llvm::Metadata *md) {
 
 }  // namespace
 
+bool KernelInfoPass::IsCudaModule(llvm::Module& M) const {
+  auto mod_type = GetModuleType(M);
+  if (mod_type != kNvidiaPtx64 && mod_type != kNvidiaPtx32) {
+    return false;
+  }
+
+  return true;
+}
+
 bool KernelInfoPass::runOnModule(llvm::Module& M) {
   auto mod_type = GetModuleType(M);
   if (mod_type != kNvidiaPtx64) {

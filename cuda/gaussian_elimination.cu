@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstdio>
-#include "cuda_common.h"
+#include "cuda_util.h"
 
 // One block handles one row
 __global__ void ForwardElimination(int p, int n,

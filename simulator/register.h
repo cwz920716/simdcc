@@ -5,6 +5,13 @@
 
 namespace simdsim {
 
+enum RegType {
+  kPositional,
+  kScalarPositional,
+  kScalarData,
+  kVectorizedData
+};
+
 class VirtualRegister {
  public:
   bool IsScalar() const;

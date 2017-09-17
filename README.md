@@ -1,2 +1,2 @@
 # simdsim
-SIMD/SIMT Simulator Using Cuda
+SIMD/SIMT Framework. 
