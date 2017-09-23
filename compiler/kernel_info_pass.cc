@@ -54,7 +54,7 @@ bool KernelInfoPass::runOnModule(llvm::Module& M) {
     return false;
   }
 
-  LOG(INFO) << "A Ptx64 LLVM Module is found:";
+  LOG(INFO) << "A Ptx64 LLVM Module is found: " << M.getName().str();
   llvm::NamedMDNode *nvvm_annotations = M.getNamedMetadata(NVVM_ANNOTATIONS);
   for (auto md : nvvm_annotations->operands()) {
     if (md->getNumOperands() == 3) {
@@ -69,7 +69,6 @@ bool KernelInfoPass::runOnModule(llvm::Module& M) {
         if (auto func = dyn_cast<llvm::Function>(func_md)) {
           CHECK(isa<llvm::MDString>(md1) && isa<llvm::ConstantAsMetadata>(md2));
           CHECK(MD2String(md1) == "kernel");
-          llvm::outs() << func->getName() << "\n";
         }
       }
     }

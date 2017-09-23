@@ -9,6 +9,9 @@
 
 #define NVVM_ANNOTATIONS "nvvm.annotations"
 
+#define GENERIC_ADDR_SPACE (0)
+#define LOCAL_ADDR_SPACE (5)
+
 extern "C" {
 
 #define FILE_NAME_MAX 128
@@ -35,5 +38,32 @@ struct CondBranchParams {
 };  // struct CondBranchParams
 
 }  // extern "C"
+
+namespace gpuvm {
+
+class InstStatistics {
+ public:
+  InstStatistics() {}
+
+  inline int Record(llvm::Instruction *inst) {
+    int id = instructions.size();
+    inst_id[inst] = id;
+    instructions.push_back(inst);
+    return id;
+  }
+
+  inline int GetInstructionId(llvm::Instruction *inst) {
+    if (inst_id.find(inst) != inst_id.end()) {
+      return -1;
+    }
+
+    return inst_id[inst];
+  }
+
+  std::vector<llvm::Instruction *> instructions;
+  std::map<llvm::Instruction *, int> inst_id;
+};
+
+}  // namespace gpuvm
 
 #endif

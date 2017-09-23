@@ -3,28 +3,31 @@
 
 #include <llvm/Pass.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/InstVisitor.h>
+#include <llvm/IR/IRBuilder.h>
 
 #include "base.h"
 #include "kernel_info_pass.h"
 
 #define COND_BRANCH_PARAMS_TYPENAME "CondBranchParams"
+#define BEFORE_BRANCH_HANDLER_FUNCNAME "before_branch_handler"
 
 namespace gpuvm {
 
 class CondBranchAnalysisPass: public llvm::ModulePass {
  public:
-  static char ID;
-  CondBranchAnalysisPass() : llvm::ModulePass(ID), num_branches_(0) {}
+  CondBranchAnalysisPass() : llvm::ModulePass(ID) {}
 
   bool runOnModule(llvm::Module&);
   // We don't modify the program, so we preserve all analyses
   void getAnalysisUsage(llvm::AnalysisUsage &AU) const;
 
- private:
-  int64_t num_branches_;
+  static char ID;
 
-  llvm::StructType *
-  CondBranchAnalysisPass::DefineHandlerParamsType(llvm::Module& module)
+ private:
+  llvm::StructType *DefineHandlerParamsType(llvm::Module& module);
+
+  InstStatistics branch_stat_;
 };
 
 }  // namespace gpuvm
