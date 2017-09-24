@@ -12,6 +12,13 @@
 #define GENERIC_ADDR_SPACE (0)
 #define LOCAL_ADDR_SPACE (5)
 
+#include <iostream>
+#include <string>
+#include <functional>
+
+#include <llvm/Pass.h>
+#include <llvm/IR/Instructions.h>
+
 extern "C" {
 
 #define FILE_NAME_MAX 128
@@ -41,6 +48,8 @@ struct CondBranchParams {
 
 namespace gpuvm {
 
+using std::to_string;
+
 class InstStatistics {
  public:
   InstStatistics() {}
@@ -58,6 +67,16 @@ class InstStatistics {
     }
 
     return inst_id[inst];
+  }
+
+  inline std::string DebugStr(void) {
+    std::string db = "";
+    for (auto inst : instructions) {
+      int id = inst_id[inst];
+      db += "branch(" + to_string(id) + "): line "
+            + to_string(inst->getDebugLoc().getLine()) + "\n";
+    }
+    return db;
   }
 
   std::vector<llvm::Instruction *> instructions;

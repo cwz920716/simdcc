@@ -132,6 +132,8 @@ bool CondBranchAnalysisPass::runOnModule(llvm::Module& module) {
     br_visitor.visit(func);
   }
 
+  LOG(INFO) << "Branch Description:\n" << branch_stat_.DebugStr();
+
   return true;
 }
 
