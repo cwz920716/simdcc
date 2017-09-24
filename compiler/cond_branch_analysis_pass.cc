@@ -22,35 +22,52 @@ class BranchInstVisitor: public llvm::InstVisitor<BranchInstVisitor> {
     return cond_branch_params;
   }
 
-  // visit branch inst
   void visitBranchInst(llvm::BranchInst &br) {
+
     llvm::Module *module = parent->getParent();
     llvm::LLVMContext &ctx = module->getContext();
     llvm::StructType *type_cond_branch_params =
         module->getTypeByName(COND_BRANCH_PARAMS_TYPENAME);
-
-    int br_id = stat->Record(&br);
     llvm::Type *type_int32 = llvm::IntegerType::get(ctx, 32);
-    llvm::Type *type_ptr_i32 =
-        llvm::PointerType::get(type_int32, GENERIC_ADDR_SPACE);
-    auto value_bid = llvm::ConstantInt::getSigned(type_int32, br_id);
+    llvm::Type *type_int8 = llvm::IntegerType::get(ctx, 8);
 
+    // get branch id.
+    int br_id = stat->Record(&br);
+    // allocate argument on stack.
     auto argument = GetCondBranchParams();
     CHECK(argument != nullptr);
-
+    // get callback function.
     llvm::Function *br_handler =
         module->getFunction(BEFORE_BRANCH_HANDLER_FUNCNAME);
-    llvm::SmallVector<llvm::Value *, 1> args(1, argument);
     CHECK(br_handler != nullptr);
+
+    // set up callback arguments.
     llvm::IRBuilder<> builder(&br);
     auto ptr_bid = builder.CreateConstGEP2_32(type_cond_branch_params,
                                               argument, 0, 0);
+    auto value_bid = llvm::ConstantInt::getSigned(type_int32, br_id);
     builder.CreateStore(value_bid, ptr_bid);
+
+    auto ptr_taken = builder.CreateConstGEP2_32(type_cond_branch_params,
+                                                argument, 0, 1);
+    llvm::Value *value_taken = llvm::ConstantInt::get(type_int8, 1);
+    if (br.isConditional()) {
+      value_taken = builder.CreateZExt(br.getCondition(), type_int8);
+    }
+    builder.CreateStore(value_taken, ptr_taken);
+
+    auto ptr_is_conditional =
+        builder.CreateConstGEP2_32(type_cond_branch_params, argument, 0, 1);
+    auto value_is_conditional =
+        llvm::ConstantInt::get(type_int8, br.isConditional());
+    builder.CreateStore(value_is_conditional, ptr_is_conditional);
+
+    // invoke callback.
+    llvm::SmallVector<llvm::Value *, 1> args(1, argument);
     builder.CreateCall(br_handler, args);
   }
 
   // visit indirect branch inst
-  // visit default inst
 
   llvm::Function *parent;
   InstStatistics *stat;

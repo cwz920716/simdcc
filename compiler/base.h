@@ -34,7 +34,7 @@ struct InstParams {
 struct CondBranchParams {
   int32_t id;
   bool taken;
-  bool is_backedge;
+  bool is_conditional;
 };  // struct CondBranchParams
 
 }  // extern "C"

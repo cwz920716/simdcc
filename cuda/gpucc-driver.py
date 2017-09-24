@@ -1,7 +1,7 @@
 import sys
 from subprocess import call
 
-verbose = True
+verbose = False
 
 with open("cmd.ins", "r") as instructions:
   for inst in instructions:
@@ -17,7 +17,7 @@ with open("cmd.ins", "r") as instructions:
     tokens = inst.split()
     # print(tokens)
     if call(tokens) != 0:
-      print("FATAL: driver exit.")
+      print("FATAL: gpucc-driver exit when " + inst)
       exit()
 
-print("driver finish successfully!")    
+print("gpucc-driver finish successfully!")    

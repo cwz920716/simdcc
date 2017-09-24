@@ -6,7 +6,7 @@ extern "C" {
 struct CondBranchParams {
   int32_t id;
   bool taken;
-  bool is_backedge;
+  bool is_conditional;
 };  // struct CondBranchParams
 
 __device__ void before_branch_handler(struct CondBranchParams *ptr);

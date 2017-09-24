@@ -22,6 +22,6 @@ __device__ void before_branch_handler(struct CondBranchParams *ptr) {
     return;
   }
 
-  printf("Thread %d at branch %d, X=%p\n", threadIdx.x, ptr->id, sassiStats);
+  printf("Thread (%d, %d) at branch %d, %s\n", blockIdx.x, threadIdx.x, ptr->id, ptr->taken ? "taken" : "not-taken");
   return;
 }
