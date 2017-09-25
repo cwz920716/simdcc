@@ -18,10 +18,14 @@ struct BranchCounter {
 static __managed__ sassi::dictionary<uint64_t, BranchCounter> *sassiStats;
 
 __device__ void before_branch_handler(struct CondBranchParams *ptr) {
-  if (ptr == NULL) {
+  if (ptr == NULL || sassiStats == NULL) {
     return;
   }
 
   printf("Thread (%d, %d) at branch %d, %s\n", blockIdx.x, threadIdx.x, ptr->id, ptr->taken ? "taken" : "not-taken");
   return;
+}
+
+void before_main_handler(void) {
+  sassiStats = new sassi::dictionary<uint64_t, BranchCounter>();
 }
