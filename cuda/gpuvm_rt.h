@@ -10,6 +10,7 @@ struct CondBranchParams {
 };  // struct CondBranchParams
 
 __device__ void before_branch_handler(struct CondBranchParams *ptr);
+void before_main_handler(void);
 
 }
 

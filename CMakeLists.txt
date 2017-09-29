@@ -4,6 +4,10 @@ project(SimdSim)
 
 set (CMAKE_CXX_STANDARD 11)
 
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED)
@@ -14,6 +18,8 @@ include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
+
+INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 add_subdirectory(compiler)
 add_subdirectory(emulator)

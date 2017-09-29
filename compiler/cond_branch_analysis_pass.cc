@@ -57,7 +57,7 @@ class BranchInstVisitor: public llvm::InstVisitor<BranchInstVisitor> {
     builder.CreateStore(value_taken, ptr_taken);
 
     auto ptr_is_conditional =
-        builder.CreateConstGEP2_32(type_cond_branch_params, argument, 0, 1);
+        builder.CreateConstGEP2_32(type_cond_branch_params, argument, 0, 2);
     auto value_is_conditional =
         llvm::ConstantInt::get(type_int8, br.isConditional());
     builder.CreateStore(value_is_conditional, ptr_is_conditional);
