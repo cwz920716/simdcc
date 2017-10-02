@@ -2,7 +2,6 @@
 #include <cstdio>
 #include "glog/logging.h"
 #include "cuda_util.h"
-#include "gpuvm_rt.h"
 
 // One block handles one row
 __global__ void ForwardElimination(int p, int n,
@@ -65,7 +64,6 @@ void printArray2D(float *A, int n) {
 
 int main(void) {
   int n = 6;
-  // before_main_handler();
 
   float hA[] = {
     1.00, 0.00, 0.00,  0.00,  0.00, 0.00,
@@ -94,8 +92,8 @@ int main(void) {
     ForwardElimination<<< 6, 4 >>>(p, n, pA, pb, pU, py);
     SWAP(pA, pU, float *);
     SWAP(pb, py, float *);
-    // cudaMemcpy(hA, pA, a_size, cudaMemcpyDeviceToHost);
-    // printArray2D(hA, n);
+    cudaMemcpy(hA, pA, a_size, cudaMemcpyDeviceToHost);
+    printArray2D(hA, n);
   }
 
   cudaMemcpy(hA, pA, a_size, cudaMemcpyDeviceToHost);

@@ -1,5 +1,5 @@
-#ifndef _COMPILER_COND_BRANCH_ANALYSIS_Pass_H
-#define _COMPILER_COND_BRANCH_ANALYSIS_Pass_H
+#ifndef _COMPILER_MEMORY_ANALYSIS_PASS_H
+#define _COMPILER_MEMORY_ANALYSIS_PASS_H
 
 #include <llvm/Pass.h>
 #include <llvm/IR/Instructions.h>
@@ -9,14 +9,14 @@
 #include "base.h"
 #include "kernel_info_pass.h"
 
-#define COND_BRANCH_PARAMS_TYPENAME "CondBranchParams"
-#define BEFORE_BRANCH_HANDLER_FUNCNAME "before_branch_handler"
+#define MEM_PARAMS_TYPENAME "MemParams"
+#define BEFORE_MEM_HANDLER_FUNCNAME "before_mem_handler"
 
 namespace gpuvm {
 
-class CondBranchAnalysisPass: public llvm::ModulePass {
+class MemoryAnalysisPass: public llvm::ModulePass {
  public:
-  CondBranchAnalysisPass() : llvm::ModulePass(ID) {}
+  MemoryAnalysisPass() : llvm::ModulePass(ID) {}
 
   bool runOnModule(llvm::Module&);
   // We don't modify the program, so we preserve all analyses
@@ -26,10 +26,8 @@ class CondBranchAnalysisPass: public llvm::ModulePass {
 
  private:
   llvm::StructType *DefineHandlerParamsType(llvm::Module& module);
-
-  InstStatistics branch_stat_;
 };
 
 }  // namespace gpuvm
 
-#endif  // #ifndef _COMPILER_COND_BRANCH_ANALYSIS_Pass_H
+#endif  // _COMPILER_MEMORY_ANALYSIS_PASS_H

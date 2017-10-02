@@ -1,5 +1,5 @@
-#ifndef _CUDA_KERNEL_INFO_PASS_H
-#define _CUDA_KERNEL_INFO_PASS_H
+#ifndef _COMPILER_KERNEL_INFO_PASS_H
+#define _COMPILER_KERNEL_INFO_PASS_H
 
 #include <llvm/Pass.h>
 #include <llvm/IR/Instructions.h>
@@ -27,4 +27,4 @@ class KernelInfoPass: public llvm::ModulePass {
 
 }  // namespace gpuvm
 
-#endif  // #ifndef _CUDA_KERNEL_INFO_PASS_H
+#endif  // #ifndef _COMPILER_KERNEL_INFO_PASS_H

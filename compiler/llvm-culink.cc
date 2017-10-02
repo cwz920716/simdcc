@@ -1,4 +1,4 @@
-//===- llvm-link.cpp - Low-level LLVM linker ------------------------------===//
+//===- llvm-culink.cc - LLVM linker For Cuda ------------------------------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -8,7 +8,7 @@
 //===----------------------------------------------------------------------===//
 //
 // This utility may be invoked in the following manner:
-//  llvm-link a.bc b.bc c.bc -o x.bc
+//  llvm-culink a.bc b.bc c.bc -o x.bc
 //
 //===----------------------------------------------------------------------===//
 
@@ -398,7 +398,7 @@ static std::vector<DeviceVar> ParseDeviceVarsFromFile(void) {
   std::string decl;
   while (std::getline(device_vars_file, decl)) {
     std::vector<std::string> tokens;
-    const char *sep = "\n\t ;";
+    const char *sep = "\n\t ;*()";
     boost::trim_if(decl, boost::is_any_of(sep));
     boost::split(tokens, decl, is_any_of(sep));
 
@@ -443,7 +443,7 @@ static void FixCUDARegistry(Module &Module, LLVMContext &Context) {
     fatbin_register_ivisitor.visit(*register_kernel_func);
     gpu_binary_handles = std::move(fatbin_register_ivisitor.registry);
   }
-  if (Verbose) errs() << "List Gpu Binary Handles.\n";
+  if (Verbose) errs() << "List Gpu Binary Handles...\n";
   for (auto handle : gpu_binary_handles) {
     if (Verbose) errs() << *handle << "\n";
   }
@@ -488,6 +488,10 @@ static void FixCUDARegistry(Module &Module, LLVMContext &Context) {
       for (auto gpu_binary_handle : gpu_binary_handles) {
         for (auto &dv : device_vars) {
           llvm::GlobalVariable *var = dv.llvm_global_var;
+          if (var == nullptr) {
+            continue;
+          }
+
           uint64_t var_size =
               Module.getDataLayout().getTypeAllocSize(var->getValueType());
           auto var_name =

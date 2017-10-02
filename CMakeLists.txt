@@ -21,9 +21,6 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
-add_subdirectory(compiler)
-add_subdirectory(emulator)
-
 if (CUDA_FOUND)
   message("CUDA found")
   set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_35,code=sm_35)
@@ -31,3 +28,6 @@ if (CUDA_FOUND)
 else()
   message("Error: CUDA not found!")
 endif()
+
+add_subdirectory(compiler)
+add_subdirectory(emulator)

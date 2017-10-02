@@ -128,11 +128,11 @@ bool CondBranchAnalysisPass::runOnModule(llvm::Module& module) {
     }
 
     BranchInstVisitor br_visitor(&func, &branch_stat_);
-    LOG(INFO) << "Run BranchInstVisitor On " << func.getName().str();
+    // LOG(INFO) << "Run BranchInstVisitor On " << func.getName().str();
     br_visitor.visit(func);
   }
 
-  LOG(INFO) << "Branch Description:\n" << branch_stat_.DebugStr();
+  LOG(INFO) << "Branch Description:\n" << branch_stat_.DebugStr("branch");
 
   return true;
 }

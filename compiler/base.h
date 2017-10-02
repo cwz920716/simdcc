@@ -1,5 +1,5 @@
-#ifndef _CUDA_BASE_H
-#define _CUDA_BASE_H
+#ifndef _COMPILER_BASE_H
+#define _COMPILER_BASE_H
 
 #define NVPTX_NVIDIA_CUDA "nvptx-nvidia-cuda"
 #define NVPTX64_NVIDIA_CUDA "nvptx64-nvidia-cuda"
@@ -18,33 +18,6 @@
 
 #include <llvm/Pass.h>
 #include <llvm/IR/Instructions.h>
-
-extern "C" {
-
-#define FILE_NAME_MAX 128
-
-enum InstructionType {
-  kMemRead = 0,
-  kMemWrite,
-  kCondBranch,
-  kDefault
-};
-
-struct InstParams {
-  int32_t id;
-  int32_t type;
-  bool will_execute;
-  int32_t line_no;
-  char file_name[FILE_NAME_MAX];
-};  // struct InstParams
-
-struct CondBranchParams {
-  int32_t id;
-  bool taken;
-  bool is_conditional;
-};  // struct CondBranchParams
-
-}  // extern "C"
 
 namespace gpuvm {
 
@@ -69,11 +42,11 @@ class InstStatistics {
     return inst_id[inst];
   }
 
-  inline std::string DebugStr(void) {
+  inline std::string DebugStr(const std::string &type_str) {
     std::string db = "";
     for (auto inst : instructions) {
       int id = inst_id[inst];
-      db += "branch(" + to_string(id) + "): line "
+      db += type_str + "(" + to_string(id) + "): line "
             + to_string(inst->getDebugLoc().getLine()) + "\n";
     }
     return db;
@@ -85,4 +58,4 @@ class InstStatistics {
 
 }  // namespace gpuvm
 
-#endif
+#endif  // _COMPILER_BASE_H
