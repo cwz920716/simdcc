@@ -10,6 +10,11 @@ __global__ void ForwardElimination(int p, int n,
   int bid = blockIdx.x;  // Rows
   int tid = threadIdx.x;
 
+  __shared__ float sharedA[6];
+
+  
+  atomicAdd(&U[0], 1.0f);
+
   if (bid < p) {
     CUDA_BLOCK_LOOP(c, n) {
       U[bid * n + c] = A[bid * n + c];
@@ -24,7 +29,12 @@ __global__ void ForwardElimination(int p, int n,
 
   if (bid == p) {
     CUDA_BLOCK_LOOP(c, n) {
-      float U_pc = A[p * n + c] * pivot_down_scale;
+      sharedA[c] = A[p * n + c];
+    }
+    __syncthreads();
+
+    CUDA_BLOCK_LOOP(c, n) {
+      float U_pc = sharedA[c] * pivot_down_scale;
       float y_p = b[p] * pivot_down_scale;
       U[bid * n + c] = U_pc;
       if (tid == 0) {

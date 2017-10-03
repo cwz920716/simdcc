@@ -1,5 +1,7 @@
 #include <cstdio>
 
+// #include <sm_20_intrinsics.h>
+
 #include "cuda_util.h"
 #include "gpuvm_rt.h"
 #include "sassi_runtime/sassi_dictionary.hpp"
@@ -33,9 +35,11 @@ __device__ void before_mem_handler(struct MemParams *ptr) {
     return;
   }
 
+  void *Addr = (void *) ptr->address;
+
   printf("Thread (%d, %d) is %s %ld bits from %p (AP: %d)\n",
               blockIdx.x, threadIdx.x, ptr->write ? "storing" : "loading",
-              ptr->size_in_bits, (void *) ptr->address, ptr->addr_space);
+              ptr->size_in_bits, Addr, __isGlobal(Addr) ? 1 : ptr->addr_space);
   return;
 }
 
