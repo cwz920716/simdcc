@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 
+#include <cxxabi.h>
 #include "memory_analysis_pass.h"
 
 namespace gpuvm {
@@ -17,12 +18,13 @@ class MemoryAccessVisitor: public llvm::InstVisitor<MemoryAccessVisitor> {
     llvm::Module *module = parent->getParent();
     llvm::StructType *type = module->getTypeByName(MEM_PARAMS_TYPENAME);
     llvm::BasicBlock &entry = parent->getEntryBlock();
-    llvm::IRBuilder<> builder(entry.getTerminator());
+    llvm::IRBuilder<> builder(entry.getFirstNonPHI());
     mem_params = builder.CreateAlloca(type);
     return mem_params;
   }
 
-  void visitLoadInst(llvm::LoadInst &ld) {
+  void insertMemHandler(llvm::Instruction &inst, llvm::Value *pointer, 
+                        bool is_write, bool is_atomic = false) {
     llvm::Module *module = parent->getParent();
     llvm::LLVMContext &ctx = module->getContext();
     const llvm::DataLayout &dl = module->getDataLayout();
@@ -42,39 +44,66 @@ class MemoryAccessVisitor: public llvm::InstVisitor<MemoryAccessVisitor> {
     CHECK(mem_handler != nullptr);
 
     // set up callback arguments.
-    llvm::IRBuilder<> builder(&ld);
-    auto load_ptr = ld.getPointerOperand();
-    auto type_load_ptr = ld.getPointerOperandType();
-    CHECK(type_load_ptr->isPointerTy());
-    auto type_load = type_load_ptr->getPointerElementType();
+    llvm::IRBuilder<> builder(&inst);
+    llvm::Type *type = pointer->getType();
+    CHECK(type->isPointerTy());
+    auto type_ptr = llvm::dyn_cast<llvm::PointerType>(type);
+    auto type_access = type_ptr->getPointerElementType();
 
     auto ptr_address = builder.CreateConstGEP2_32(type_mem_params,
                                                   argument, 0, 0);
     auto value_address =
-        builder.CreatePtrToInt(load_ptr, type_int64);
+        builder.CreatePtrToInt(pointer, type_int64);
     builder.CreateStore(value_address, ptr_address);
 
     auto ptr_size = builder.CreateConstGEP2_32(type_mem_params,
                                                argument, 0, 1);
     llvm::Value *value_size =
-        llvm::ConstantInt::get(type_int64, dl.getTypeSizeInBits(type_load));
+        llvm::ConstantInt::get(type_int64, dl.getTypeSizeInBits(type_access));
     builder.CreateStore(value_size, ptr_size);
 
     auto ptr_ap = builder.CreateConstGEP2_32(type_mem_params,
                                                argument, 0, 2);
     llvm::Value *value_ap =
-        llvm::ConstantInt::get(type_int32, ld.getPointerAddressSpace());
+        llvm::ConstantInt::get(type_int32, type_ptr->getPointerAddressSpace());
     builder.CreateStore(value_ap, ptr_ap);
 
     auto ptr_is_write = builder.CreateConstGEP2_32(type_mem_params,
                                                    argument, 0, 3);
     auto value_is_write =
-        llvm::ConstantInt::get(type_int8, 0);
+        llvm::ConstantInt::get(type_int8, is_write);
     builder.CreateStore(value_is_write, ptr_is_write);
 
     // invoke callback.
     llvm::SmallVector<llvm::Value *, 1> args(1, argument);
     builder.CreateCall(mem_handler, args);
+  }
+
+  void visitCallInst(llvm::CallInst &call) {
+    auto func = call.getCalledFunction();
+    if (func == nullptr) {
+      LOG(WARNING) << "Indirect function call not supported yet.";
+      return;
+    }
+
+    std::string name = func->getName();
+    LOG(INFO) << "Calling " << name;
+  }
+
+  void visitAtomicCmpXchg(llvm::AtomicCmpXchgInst &cmpxchg) {
+    insertMemHandler(cmpxchg, cmpxchg.getPointerOperand(), true, true);
+  }
+
+  void visitAtomicRMW(llvm::AtomicRMWInst &atomicrmw) {
+    insertMemHandler(atomicrmw, atomicrmw.getPointerOperand(), true, true);
+  }
+
+  void visitStoreInst(llvm::StoreInst &st) {
+    insertMemHandler(st, st.getPointerOperand(), true);
+  }
+
+  void visitLoadInst(llvm::LoadInst &ld) {
+    insertMemHandler(ld, ld.getPointerOperand(), false);
   }
 
   llvm::Function *parent;

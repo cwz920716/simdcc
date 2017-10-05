@@ -3,6 +3,8 @@
 #include "glog/logging.h"
 #include "cuda_util.h"
 
+__device__ void TestNameMangling() { printf("TestNameMangling\n"); }
+
 // One block handles one row
 __global__ void ForwardElimination(int p, int n,
                                    const float *A, const float *b,
@@ -12,8 +14,8 @@ __global__ void ForwardElimination(int p, int n,
 
   __shared__ float sharedA[6];
 
-  
-  atomicAdd(&U[0], 1.0f);
+  TestNameMangling();
+  atomicExch(&U[0], 1.0f);
 
   if (bid < p) {
     CUDA_BLOCK_LOOP(c, n) {

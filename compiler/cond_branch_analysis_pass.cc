@@ -17,7 +17,7 @@ class BranchInstVisitor: public llvm::InstVisitor<BranchInstVisitor> {
     llvm::Module *module = parent->getParent();
     llvm::StructType *type = module->getTypeByName(COND_BRANCH_PARAMS_TYPENAME);
     llvm::BasicBlock &entry = parent->getEntryBlock();
-    llvm::IRBuilder<> builder(entry.getTerminator());
+    llvm::IRBuilder<> builder(entry.getFirstNonPHI());
     cond_branch_params = builder.CreateAlloca(type);
     return cond_branch_params;
   }
