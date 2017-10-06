@@ -17,26 +17,38 @@ enum DataType {
   Task,
 };
 
-enum AddressSpace {
+enum AddrSpace {
   Generic,
-  
+  Global,
+  Internal,
+  Shared,
+  Constant,
+  Local,
+};
 
-enum ParallelScope {
-  Sequential,
+enum Scope {
+  Thread,
   Warp,
   Threadblock,
   Device,
 };
 
-enum ParallelOperator {
-  ParallelFor,
-  RescourceAlloc,
+enum Operator {
+  CXXRestricted,  // restricted straight line cxx statement operate on local data, no memory allocation/dereference
+  Load,
+  Store,
   AtomicOp,
+  // Control flow
+  ParallelFor,
+  For,
+  Singleton,
+  UniformIf,
+  If,
+  // Helper 
   InclusiveScan,
   ExclusiveScan,
   Reduce,
-  Load,
-  Store,
+  RescourceAllocation,
 };
 
 
