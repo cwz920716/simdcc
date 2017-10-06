@@ -1,5 +1,11 @@
 // GPU Graph Traversal Language
 
+#include <string>
+#include <sstream>
+#include <iostream>
+
+using namespace std;
+
 namespace ggtl {
 
 enum DataType {
@@ -13,6 +19,7 @@ enum DataType {
   Struct,
   NdArray,
   // GGTL Specific types
+  Iteratable,
   WorkList,
   Task,
 };
@@ -38,12 +45,14 @@ enum Operator {
   Load,
   Store,
   AtomicOp,
+  MemFence,
   // Control flow
   ParallelFor,
   For,
   Singleton,
   UniformIf,
   If,
+  Barrier,
   // Helper 
   InclusiveScan,
   ExclusiveScan,
@@ -51,5 +60,20 @@ enum Operator {
   RescourceAllocation,
 };
 
+class Value {
+ public:
+  Value(int id, DataType type, Scope scope, const string &name): id_(id), type_(type), scope_(scope), name_(name) {}
+
+ private:
+  int id_;
+  DataType type_;
+  Scope scope_;
+  string name_;
+};
+
+static int valuesi = 0;
+static int value_id_gen(void) {
+  return values++;
+}
 
 }  // namespace ggtl
