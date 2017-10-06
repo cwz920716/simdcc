@@ -9,6 +9,7 @@ using namespace std;
 namespace ggtl {
 
 enum DataType {
+  Bool,
   Int8,
   Int32,
   Int64,
@@ -49,6 +50,7 @@ enum Operator {
   // Control flow
   ParallelFor,
   For,
+  Enlist,
   Singleton,
   UniformIf,
   If,
