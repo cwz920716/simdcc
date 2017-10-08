@@ -16,6 +16,23 @@ __task__ void warp_gather(Vertex[] Vertices) {
   }
 }
 
+__task__ void warp_gather_detail(Vertex[] Vertices) {
+  __device__ parfor(auto v : Vertices) {
+    __warp__ Leader[2];
+    __thread__ Vertex[] adj = v.neighbours;
+    __thread__ bool adj_valid = adj.size > 0;
+    while (__warp__ any(adj_valid)) {
+      if (adj_valid) Leader[0] = lane_id;
+      if (Leader[0] == lane_id) {
+        Leader[1] = v;
+      }
+      __warp__ parfor (w : Leader[1]) {
+        visit(w);
+      }
+    }
+  }
+}
+ 
 __task__ void fg_gather(Vertex[] Vertices) {
   __device__ parfor(auto v : Vertices) {
     __threadblock__ int comm[THREADS_PER_BLOCK];
@@ -54,5 +71,31 @@ __task__ void fg_gather_advanced(Vertex[] Vertices) {
     __threadblock__ parfor(v : comm) {
       visit(v);
     }
+  }
+}
+
+__task__ void spv_sum(float[] C, float[] A) {
+  __device__ Slice rows = [0:C.size:1];
+  __device__ parfor(i : rows) {
+    __thread__ Slice cols = [ C[i] : C[i+1] : 1 ];
+    __thread__ sum = 0;
+    for (j : cols) {
+      sum += A[j];
+    }
+  }
+}
+
+__task__ void warp_cull(Vertex[] Vertices) {
+  __device__ parfor(v : Vertices) {
+    __thread__ int hash = v & 127;
+    __warp__ scratch[128];
+    scratch[hash] = v;
+    if (scratch[hash] == v) {
+      scratch[hash] = thread_id;
+      if (scratch[hash] != thread_id) {
+        v.duplicate = true;
+      }
+    }
+    v.duplicate = false; // there might be false positives
   }
 }
