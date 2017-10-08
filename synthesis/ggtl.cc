@@ -50,10 +50,17 @@ enum Operator {
   // Control flow
   ParallelFor,
   For,
+  For_uni,
+  While,
+  While_uni,
+  If,
+  If_uni,
+  // Intrinsics
+  Any,
+  Ballot,
+  // Programming Paradiagms
   Enlist,
   Singleton,
-  UniformIf,
-  If,
   Barrier,
   // Helper 
   InclusiveScan,
