@@ -23,6 +23,7 @@ class BranchInstVisitor: public llvm::InstVisitor<BranchInstVisitor> {
   }
 
   void visitBranchInst(llvm::BranchInst &br) {
+    // llvm::errs() << "Visit " << br << "\n";
 
     llvm::Module *module = parent->getParent();
     llvm::LLVMContext &ctx = module->getContext();
@@ -128,7 +129,7 @@ bool CondBranchAnalysisPass::runOnModule(llvm::Module& module) {
     }
 
     BranchInstVisitor br_visitor(&func, &branch_stat_);
-    // LOG(INFO) << "Run BranchInstVisitor On " << func.getName().str();
+    LOG(INFO) << "Run BranchInstVisitor On " << func.getName().str();
     br_visitor.visit(func);
   }
 

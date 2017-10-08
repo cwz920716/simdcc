@@ -18,6 +18,10 @@
 
 #include <llvm/Pass.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FormattedStream.h>
+
 
 namespace gpuvm {
 
@@ -46,8 +50,12 @@ class InstStatistics {
     std::string db = "";
     for (auto inst : instructions) {
       int id = inst_id[inst];
+      uint32_t loc = 0;
+      if (inst->getDebugLoc()) {
+        loc = inst->getDebugLoc().getLine();
+      }
       db += type_str + "(" + to_string(id) + "): line "
-            + to_string(inst->getDebugLoc().getLine()) + "\n";
+            + to_string(loc) + "\n";
     }
     return db;
   }

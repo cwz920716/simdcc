@@ -2,6 +2,7 @@
 
 #include <cxxabi.h>
 #include "memory_analysis_pass.h"
+#include "llvm_utils.h"
 
 namespace gpuvm {
 
@@ -86,8 +87,14 @@ class MemoryAccessVisitor: public llvm::InstVisitor<MemoryAccessVisitor> {
       return;
     }
 
-    std::string name = func->getName();
-    LOG(INFO) << "Calling " << name;
+    auto name = func->getName();
+    LLVM_STRING(nvvm);
+    LLVM_STRING(atomic);
+    if (name.contains(nvvm) && name.contains(atomic)) {
+      LOG(INFO) << "Calling atomic " << std::string(name);
+      CHECK(call.getNumArgOperands() > 0);
+      insertMemHandler(call, call.getArgOperand(0), true, true);
+    }
   }
 
   void visitAtomicCmpXchg(llvm::AtomicCmpXchgInst &cmpxchg) {
