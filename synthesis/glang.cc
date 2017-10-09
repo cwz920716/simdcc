@@ -186,8 +186,11 @@ class DynArray: public IteratableValue {
 
 class Operation: public Value {
  public:
-  Operation(Scope scope, DataType type = Nil):
-    Value(type, scope) {}
+  Operation(Scope scope, Operator op, DataType type = Nil):
+    Value(type, scope), op_(op) {}
+
+ private:
+  Operator op_;
 };
 
 ConstantInt *ConstantInt::Zero, *ConstantInt::One;
