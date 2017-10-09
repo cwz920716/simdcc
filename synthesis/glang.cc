@@ -1,124 +1,48 @@
-// GPU Graph Traversal Language (glang)
-
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <cinttypes>
-
-#include <glog/logging.h>
-
-using namespace std;
+#include "glang.h"
 
 namespace glang {
 
-enum DataType {
-  Nil,
-  Bool,
-  Integer,
-  Float,
-  Float64,
-  Pointer,
-  Array,
-  Struct,
-  NdArray,
-  // GGTL Specific types
-  Iteratable,
-  WorkList,
-  Task,
-};
+DataType NilTy = new Type(Nil, "nil");
 
-enum Scope {
-  Thread,
-  Warp,
-  Threadblock,
-  Device,
-  Constant,
-};
+static map<int, IntType *> int_types;
 
-enum Operator {
-  CXXRestricted,  // restricted straight line cxx statement operate on local
-                  // data, no memory allocation/dereference
-  ParallelLoad,
-  Store,
-  AtomicOp,
-  MemFence,
-  // Control flow
-  ParallelFor,
-  For,
-  For_uni,
-  While,
-  While_uni,
-  If,
-  If_uni,
-  // Intrinsics
-  Any,
-  Ballot,
-  // Programming Paradiagms
-  Enlist,
-  Singleton,
-  Barrier,
-  // Helper 
-  InclusiveScan,
-  ExclusiveScan,
-  Reduce,
-  RescourceAllocation,
-};
-
-static int64_t values = 0;
-static int64_t value_id_gen(void) {
-  return values++;
-}
-
-class Value {
- public:
-  Value(int64_t id, DataType type, Scope scope, const string &name): id_(id), type_(type), scope_(scope), name_(name) {}
-  Value(DataType type, Scope scope, const string &name): id_(-1), type_(type), scope_(scope), name_(name) { id_ = value_id_gen(); }
-  Value(DataType type, Scope scope): id_(-1), type_(type), scope_(scope) { id_ = value_id_gen(); }
-
-  int id() const { return id_; }
-  string name() const { return name_; }
-  DataType type() const { return type_; }
-  Scope scope() const { return scope_; }
-
- protected:
-  int64_t id_;
-  DataType type_;
-  Scope scope_;
-  string name_;
-};
-
-// non-const int OR symbolic int
-class IntValue: public Value {
- public:
-  IntValue(Scope scope, string name, int bitwidth, bool is_constant = false):
-      Value(Integer, scope, name), bitwidth_(bitwidth),
-      is_constant_(is_constant) {}
-
-  int bitwidth() const { return bitwidth_; }
-  bool isConstant() const { return is_constant_; }
-
-  virtual int64_t value() const {
-    CHECK(false) << "Non-const IntValue cannot return value!";
-    return 0;
+IntType *IntType::GetIntegerTy(int bw) {
+  auto res = int_types[bw];
+  if (res == nullptr) {
+    int_types[bw] = new IntType(bw);
   }
 
- private:
-  int bitwidth_;
-  bool is_constant_;
-};
+  return int_types[bw];
+}
 
-class ConstantInt: public IntValue {
- public:
-  ConstantInt(int64_t value, int bitwidth = 32):
-      IntValue(Constant, to_string(value), bitwidth, true), value_(value) {}
+static map<DataType, PointerType *> ptr_types;
 
-  int64_t value() const { return value_; }
+PointerType *PointerType::GetPointerTy(DataType dtype) {
+  auto res = ptr_types[dtype];
+  if (res == nullptr) {
+    ptr_types[dtype] = new PointerType(dtype);
+  }
 
-  static ConstantInt *Zero, *One;
+  return ptr_types[dtype];
+}
 
- private:
-  int64_t value_;
-};
+string ScopeDesc(Scope s) {
+  switch(s) {
+    case Thread: return "__thread__";
+    case Warp: return "__warp__";
+    case ThreadBlock: return "__threadvlock__";
+    case Device: return "__device__";
+    case Constant: return "__constant__";
+    default: return "__error_scope__";
+  }
+
+  return "__fatal_error__";
+}
+
+static int64_t values = 0;
+int64_t value_id_gen(void) {
+  return values++;
+}
 
 ConstantInt *CreateConstInt(int64_t v, int bw = 32) {
   auto p = new ConstantInt(v, bw);
@@ -126,48 +50,20 @@ ConstantInt *CreateConstInt(int64_t v, int bw = 32) {
   return p;
 }
 
-class PointerValue: public Value {
- public:
-  IntValue(Scope scope, string name, DataType dtype):
-      Value(Pointer, scope, name), dtype_(dtype) {}
+IntValue *IntValue::CreateIntValue(Scope s, string name, int bw) {
+  auto p = new IntValue(s, name, bw);
+  return p;
+}
 
-  int dtype() const { return dtype_; }
+PointerValue *
+PointerValue::CreatePtrValue(Scope s, string name, DataType dtype) {
+  auto p = new PointerValue(s, name, dtype);
+  return p;
+}
 
- private:
-  DataType dtype_;
-};
-
-class IteratableValue: public Value {
- public:
-  IteratableValue(Scope scope, const string &name):
-      Value(Iteratable, scope, name) {}
-
-  virtual IntValue *start(void) const = 0;
-  virtual IntValue *end(void) const = 0;
-  virtual IntValue *step(void) const = 0;
-
-  virtual Value *reference(IntValue *iter) = 0;
-};
-
-class Slice: public IteratableValue {
- public:
-  Slice(IntValue *start, IntValue *end, IntValue *step,
-        Scope scope, const string &name):
-      IteratableValue(scope, name), start_(start), end_(end), step_(step) {}
-
-  virtual IntValue *start(void) const { return start_; }
-  virtual IntValue *end(void) const { return end_; }
-  virtual IntValue *step(void) const { return step_; }
-
-  virtual Value *reference(IntValue *iter) {
-    CHECK(iter);
-    return iter;
-  }
-
- private:
-  IntValue *start_, *end_, *step_; 
-};
-
+IteratableType *SliceTy =
+    new IteratableType("slice", IntType::GetIntegerTy());
+ 
 Slice *CreateConstSlice(int start, int end, int step = 1) {
   auto c_start = CreateConstInt(start);
   auto c_end = CreateConstInt(end);
@@ -181,35 +77,16 @@ Slice *CreateConstSlice(int start, int end, int step = 1) {
   return slice;
 }
 
-class DynArray: public IteratableValue {
- public:
-  DynArray(Scope scope, string name, DataType dtype, IntValue *length):
-      IteratableValue(scope, name), dtype_(dtype), length_(length) {}
+static map<DataType, IteratableType *> darray_types;
 
-  virtual IntValue *start(void) const { return ConstantInt::Zero; }
-  virtual IntValue *end(void) const { return length_; }
-  virtual IntValue *step(void) const { return ConstantInt::One; }
-
-  virtual Value *reference(IntValue *iter) {
-    
+IteratableType *DynArray::GetDynArrayTy(DataType dtype) {
+  auto res = darray_types[dtype];
+  if (res == nullptr) {
+    darray_types[dtype] = new IteratableType("darray", dtype);
   }
 
- private:
-  DataType dtype_;
-  PointerValue *data_;
-  IntValue *length_;
-};
-
-class Operation: public Value {
- public:
-  Operation(Scope scope, Operator op, DataType type = Nil):
-    Value(type, scope), op_(op) {}
-
-  Operator op() const { return op_; }
-
- private:
-  Operator op_;
-};
+  return darray_types[dtype];
+}
 
 ConstantInt *ConstantInt::Zero, *ConstantInt::One;
 
@@ -222,11 +99,26 @@ void InitGlang(void) {
 
 using namespace glang;
 
+void log_value(Value *v) {
+  LOG(INFO) << v->type()->nice_str() << " " << v->nice_str();
+}
+
 int main(int argc, char **argv) {
   // google::InitGoogleLogging(argv[0]);
+  InitGlang();
+
   auto c0 = CreateConstInt(0);
-  LOG(INFO) << "c0 = " << c0->name();
+  log_value(c0);
+  auto tid = new IntValue(Thread, THREAD_IDX, 32, true);
+  log_value(tid);
   auto s0 = CreateConstSlice(0, 128);
-  LOG(INFO) << "s0 = " << s0->name();
+  log_value(s0);
+  auto A0 = new DynArray( DynArray::GetDynArrayTy(IntType::GetIntegerTy()),
+                          Device, "Vertices" );
+  log_value(A0);
+  log_value(A0->data());
+  log_value(A0->length());
+  log_value(A0->reference(c0));
+
   return 0;
 }
