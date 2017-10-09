@@ -17,8 +17,8 @@ enum DataType {
   Integer,
   Float,
   Float64,
+  Pointer,
   Array,
-  // Assist types
   Struct,
   NdArray,
   // GGTL Specific types
@@ -38,7 +38,7 @@ enum Scope {
 enum Operator {
   CXXRestricted,  // restricted straight line cxx statement operate on local
                   // data, no memory allocation/dereference
-  Load,
+  ParallelLoad,
   Store,
   AtomicOp,
   MemFence,
@@ -126,6 +126,17 @@ ConstantInt *CreateConstInt(int64_t v, int bw = 32) {
   return p;
 }
 
+class PointerValue: public Value {
+ public:
+  IntValue(Scope scope, string name, DataType dtype):
+      Value(Pointer, scope, name), dtype_(dtype) {}
+
+  int dtype() const { return dtype_; }
+
+ private:
+  DataType dtype_;
+};
+
 class IteratableValue: public Value {
  public:
   IteratableValue(Scope scope, const string &name):
@@ -179,8 +190,13 @@ class DynArray: public IteratableValue {
   virtual IntValue *end(void) const { return length_; }
   virtual IntValue *step(void) const { return ConstantInt::One; }
 
+  virtual Value *reference(IntValue *iter) {
+    
+  }
+
  private:
   DataType dtype_;
+  PointerValue *data_;
   IntValue *length_;
 };
 
@@ -188,6 +204,8 @@ class Operation: public Value {
  public:
   Operation(Scope scope, Operator op, DataType type = Nil):
     Value(type, scope), op_(op) {}
+
+  Operator op() const { return op_; }
 
  private:
   Operator op_;

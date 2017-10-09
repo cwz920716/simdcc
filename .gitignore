@@ -1,6 +1,7 @@
 build
 data
 *~
+*.swp
 a.out
 *.ll
 *.ptx
