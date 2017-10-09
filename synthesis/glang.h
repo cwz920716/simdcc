@@ -276,6 +276,21 @@ class IndexOp: public Operation {
   IntValue *offset_;
 };
 
+class ParforOp: public Operation {
+ public:
+  ParforOp(Scope scope, Value *it, IteratableValue *container):
+      Operation(scope, ParallelFor), iterator_(it), container_(container) {}
+
+  void appendOp(Operation *op) {
+    body_.push_back(op);
+  }
+
+ private:
+   Value *iterator_;
+   IteratableValue *container_;
+   vector<Operation *> body_;
+};
+
 class DynArray: public IteratableValue {
  public:
   DynArray(DataType type, Scope scope, string name, 
