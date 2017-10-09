@@ -12,6 +12,7 @@ using namespace std;
 namespace glang {
 
 enum DataType {
+  Nil,
   Bool,
   Integer,
   Float,
@@ -156,6 +157,19 @@ class Slice: public IteratableValue {
   IntValue *start_, *end_, *step_; 
 };
 
+Slice *CreateConstSlice(int start, int end, int step = 1) {
+  auto c_start = CreateConstInt(start);
+  auto c_end = CreateConstInt(end);
+  auto c_step = CreateConstInt(step);
+
+  string name = "slice";
+  name += "[" + c_start->name() + ":"
+          + c_end->name() + ":" + c_step->name() + "]";
+  auto slice = new Slice(c_start, c_end, c_step, Constant, name);
+  CHECK(slice != nullptr);
+  return slice;
+}
+
 class DynArray: public IteratableValue {
  public:
   DynArray(Scope scope, string name, DataType dtype, IntValue *length):
@@ -170,18 +184,11 @@ class DynArray: public IteratableValue {
   IntValue *length_;
 };
 
-Slice *CreateConstSlice(int start, int end, int step = 1) {
-  auto c_start = CreateConstInt(start);
-  auto c_end = CreateConstInt(end);
-  auto c_step = CreateConstInt(step);
-
-  string name = "slice";
-  name += "[" + c_start->name() + ":"
-          + c_end->name() + ":" + c_step->name() + "]";
-  auto slice = new Slice(c_start, c_end, c_step, Constant, name);
-  CHECK(slice != nullptr);
-  return slice;
-}
+class Operation: public Value {
+ public:
+  Operation(Scope scope, DataType type = Nil):
+    Value(type, scope) {}
+};
 
 ConstantInt *ConstantInt::Zero, *ConstantInt::One;
 
