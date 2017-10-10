@@ -62,10 +62,7 @@ __task__ void fg_gather(Vertex[] Vertices) {
 
 __task__ void fg_gather_advanced(Vertex[] Vertices) {
   __device__ parfor(auto v : Vertices) {
-    __threadblock__ __use_once__ WorkList<int, THREADS_PER_BLOCK> comm;
-    __threadblock__ int tb_progress = 0;
-    __threadblock__ int total;
-    __thread__ int rsv_rank;
+    __threadblock__ __use_once__ WorkList<Vertex, THREADS_PER_BLOCK> comm;
     __thread__ Vertex[] adj = v.neighbours;
     __threadblock__ ResourceAllocation(comm, adj);
     __threadblock__ parfor(v : comm) {
