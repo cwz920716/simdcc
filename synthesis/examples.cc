@@ -36,8 +36,8 @@ __task__ void warp_gather_detail(Vertex[] Vertices) {
 __task__ void fg_gather(Vertex[] Vertices) {
   __device__ parfor(auto v : Vertices) {
     __threadblock__ int comm[THREADS_PER_BLOCK];
-    __threadblock__ int tb_progress = 0;
-    __threadblock__ int total;
+    __thread__ int tb_progress = 0;
+    __thread__ int total;
     __thread__ int rsv_rank;
     __thread__ Vertex[] adj = v.neighbours;
     rsv_rank, total = __threadblock__ ExclusiveScan(adj.size);
