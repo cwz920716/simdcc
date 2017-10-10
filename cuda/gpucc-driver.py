@@ -5,8 +5,9 @@ from subprocess import call
 
 import argparse
 parser = argparse.ArgumentParser(description='Invoke gpucc via clang explicitly.')
-parser.add_argument('--filename', '-f', metavar='<file>.cu', nargs=1, help='CUDA filename.', default='gaussian_elimination')
-parser.add_argument('--output', '-o', metavar='<output>', nargs=1, help='Ouput filename.', default='a.out')
+parser.add_argument('--script', '-n', metavar='<script>', nargs='?', help='Scripts for compile instrunctions.', default='cmd.ins')
+parser.add_argument('--filename', '-f', metavar='<file>.cu', nargs='?', help='CUDA filename.', default='gaussian_elimination')
+parser.add_argument('--output', '-o', metavar='<output>', nargs='?', help='Ouput filename.', default='a.out')
 parser.add_argument('--verbose', '-v', action='count')
 
 args = parser.parse_args()
@@ -15,7 +16,7 @@ Verbose = False
 if args.verbose:
   Verbose = args.verbose > 0
 
-with open("cmd.ins", "r") as instructions:
+with open(args.script, "r") as instructions:
   for inst in instructions:
     if inst.isspace():
       continue

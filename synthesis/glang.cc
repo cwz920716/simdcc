@@ -44,15 +44,25 @@ int64_t value_id_gen(void) {
   return values++;
 }
 
-ConstantInt *CreateConstInt(int64_t v, int bw = 32) {
-  auto p = new ConstantInt(v, bw);
-  // store p into a global map to reduce memory
-  return p;
-}
+IntValue *IntValue::global_id,
+         *IntValue::threadblock_id, *IntValue::thread_id,
+         *IntValue::warp_id, *IntValue::lane_id;
+IntValue *IntValue::WARP_SIZE, *IntValue::TB_SIZE, *IntValue::GLOBAL_SIZE;
 
 IntValue *IntValue::CreateIntValue(Scope s, string name, int bw) {
   auto p = new IntValue(s, name, bw);
   return p;
+}
+
+static map<int, map<int64_t, ConstantInt *> > const_int_values;
+
+ConstantInt *ConstantInt::CreateConstInt(int64_t v, int bw) {
+  auto res = const_int_values[bw][v];
+  if (res == nullptr) {
+    // store p into a global map to reduce memory
+    const_int_values[bw][v] = new ConstantInt(v, bw);
+  }
+  return const_int_values[bw][v];
 }
 
 PointerValue *
@@ -65,9 +75,9 @@ IteratableType *SliceTy =
     new IteratableType("slice", IntType::GetIntegerTy());
  
 Slice *CreateConstSlice(int start, int end, int step = 1) {
-  auto c_start = CreateConstInt(start);
-  auto c_end = CreateConstInt(end);
-  auto c_step = CreateConstInt(step);
+  auto c_start = ConstantInt::CreateConstInt(start);
+  auto c_end = ConstantInt::CreateConstInt(end);
+  auto c_step = ConstantInt::CreateConstInt(step);
 
   string name = "slice";
   name += "[" + c_start->name() + ":"
@@ -91,8 +101,16 @@ IteratableType *DynArray::GetDynArrayTy(DataType dtype) {
 ConstantInt *ConstantInt::Zero, *ConstantInt::One;
 
 void InitGlang(void) {
-  ConstantInt::Zero = CreateConstInt(0);
-  ConstantInt::One = CreateConstInt(1);
+  ConstantInt::Zero = ConstantInt::CreateConstInt(0);
+  ConstantInt::One = ConstantInt::CreateConstInt(1);
+  IntValue::global_id = IntValue::CreateIntValue(Thread, GLOBAL_ID_STR);
+  IntValue::threadblock_id = IntValue::CreateIntValue(Thread, TB_ID_STR);
+  IntValue::thread_id = IntValue::CreateIntValue(Thread, THREAD_ID_STR);
+  IntValue::warp_id = IntValue::CreateIntValue(Thread, WARP_ID_STR);
+  IntValue::lane_id = IntValue::CreateIntValue(Thread, LANE_ID_STR);
+  IntValue::WARP_SIZE = IntValue::CreateIntValue(Constant, WARP_SIZE_STR);
+  IntValue::TB_SIZE = IntValue::CreateIntValue(Constant, TB_SIZE_STR);
+  IntValue::GLOBAL_SIZE = IntValue::CreateIntValue(Constant, GLOBAL_SIZE_STR);
 }
 
 }  // namespace glang
@@ -103,22 +121,41 @@ void log_value(Value *v) {
   LOG(INFO) << v->type()->nice_str() << " " << v->nice_str();
 }
 
+void log_op(Operation *op) {
+  LOG(INFO) << op->cxx_code();
+}
+
 int main(int argc, char **argv) {
   // google::InitGoogleLogging(argv[0]);
   InitGlang();
 
-  auto c0 = CreateConstInt(0);
-  log_value(c0);
-  auto tid = new IntValue(Thread, THREAD_IDX, 32, true);
+  auto C0 = ConstantInt::CreateConstInt(0);
+  CHECK_EQ(C0, ConstantInt::Zero);
+  log_value(C0);
+  auto tid = new IntValue(Thread, THREAD_ID_STR, 32, true);
   log_value(tid);
-  auto s0 = CreateConstSlice(0, 128);
-  log_value(s0);
+  auto S0 = CreateConstSlice(0, 128);
+  log_value(S0);
   auto A0 = new DynArray( DynArray::GetDynArrayTy(IntType::GetIntegerTy()),
                           Device, "Vertices" );
   log_value(A0);
   log_value(A0->data());
   log_value(A0->length());
-  log_value(A0->reference(c0));
+  log_value(A0->reference(C0));
+
+  auto I = new IntValue(Thread, "i");
+  auto decl_i = new DeclareOp(I, A0->reference(I), ThreadBlock);
+  log_op(decl_i);
+
+  auto V = new IntValue(Thread, "v");
+  auto v_from_ai = new AssignOp(V, A0->reference(I));
+  log_op(v_from_ai);
+
+  auto pf0 = new ParforOp(ThreadBlock, V, A0);
+  log_op(pf0);
+  auto J = new IntValue(Thread, "j");
+  auto pf1 = new ParforOp(Warp, J, S0);
+  log_op(pf1);
 
   return 0;
 }
