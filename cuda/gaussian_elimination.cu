@@ -101,7 +101,7 @@ int main(void) {
   float *pA = A, *pb = b, *pU = U, *py = y;
   printArray2D(hA, n);
   for (int p = 0; p < n; p++) {
-    ForwardElimination<<< 6, 4 >>>(p, n, pA, pb, pU, py);
+    ForwardElimination<<< 6, 6 >>>(p, n, pA, pb, pU, py);
     SWAP(pA, pU, float *);
     SWAP(pb, py, float *);
     cudaMemcpy(hA, pA, a_size, cudaMemcpyDeviceToHost);
