@@ -431,11 +431,18 @@ class ParforOp: public Operation {
       default: break;
     }
     CHECK(start_id);
+
+    auto stride = container_->step();
+    Value *start_stride = start_id;
+    if (!stride->Equals(1)) {
+      start_stride = new BinaryOp(start_id, stride, BIN_OP_MUL);
+    }
+
     auto offset = container_->start();
     if (offset->Equals(0)) {
-      return start_id; 
+      return start_stride; 
     } else {
-      return new BinaryOp(start_id, offset, BIN_OP_ADD);
+      return new BinaryOp(start_stride, offset, BIN_OP_ADD);
     }
   }
 
@@ -448,11 +455,11 @@ class ParforOp: public Operation {
       default: break;
     }
     CHECK(par_limit);
-    auto s = container_->step();
-    if (s->Equals(1)) {
+    auto stride = container_->step();
+    if (stride->Equals(1)) {
       return par_limit; 
     } else {
-      return new BinaryOp(par_limit, s, BIN_OP_MUL);
+      return new BinaryOp(par_limit, stride, BIN_OP_MUL);
     }
   }
 

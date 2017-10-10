@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   log_value(C0);
   auto tid = new IntValue(Thread, THREAD_ID_STR, 32, true);
   log_value(tid);
-  auto S0 = CreateConstSlice(0, 128);
+  auto S0 = CreateConstSlice(1, 129, 4);
   log_value(S0);
   auto A0 = new DynArray( DynArray::GetDynArrayTy(IntType::GetIntegerTy()),
                           Device, "Vertices" );
