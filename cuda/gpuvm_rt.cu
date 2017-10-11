@@ -8,6 +8,8 @@
 
 // #include <sm_20_intrinsics.h>
 
+// #define DEBUG
+
 #include "cuda_util.h"
 #include "gpuvm_rt.h"
 #include "sassi_runtime/sassi_dictionary.hpp"
@@ -44,9 +46,11 @@ __device__ void before_branch_handler(struct CondBranchParams *brp) {
     return;
   }
 
+#ifdef DEBUG
   printf("Thread (%d, %d) at branch %d, %s, %s, %p\n", blockIdx.x, threadIdx.x,
               brp->id, brp->taken ? "taken" : "not-taken",
               brp->is_conditional ? "br" : "jmp", sassiStats);
+#endif  // DEBUG
 
   // Find out thread index within the warp.
   int threadIdxInWarp = get_laneid();
@@ -99,12 +103,13 @@ __device__ void before_mem_handler(struct MemParams *ptr) {
     return;
   }
 
-
+#ifdef DEBUG
   void *Addr = (void *) ptr->address;
 
   printf("Thread (%d, %d) is %s %ld bits from %p (AP: %d)\n",
               blockIdx.x, threadIdx.x, ptr->write ? "storing" : "loading",
               ptr->size_in_bits, Addr, __isGlobal(Addr) ? 1 : ptr->addr_space);
+#endif  // DEBUG
 
   intptr_t addrAsInt = ptr->address;
   // Don't look at shared or local memory.
