@@ -150,7 +150,8 @@ void before_main_handler(void) {
 
   printf("sassiStats H: %p\n", sassiStats_h);
 
-  const int memdiverge_size = MEMDIVERGE_SIZE * MEMDIVERGE_SIZE;
+  const int memdiverge_size =
+      MEMDIVERGE_SIZE * MEMDIVERGE_SIZE * sizeof(unsigned long long);
   CUDA_CHECK(cudaMallocManaged(&memdiverge_counters_h, memdiverge_size););
   CUDA_CHECK(
       cudaMemcpyToSymbol(memdiverge_counters, &memdiverge_counters_h,
