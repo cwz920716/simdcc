@@ -10,3 +10,4 @@ a.out
 *.o
 *.pyc
 *.fatbin
+*.txt

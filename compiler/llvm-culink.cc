@@ -394,9 +394,9 @@ struct DeviceVar {
 
 static std::vector<DeviceVar> ParseDeviceVarsFromFile(void) {
   std::vector<DeviceVar> vars;
-  std::ifstream device_vars_file("deviceVars.txt");
+  std::ifstream device_vars_file("deviceVars.decl");
   if (!device_vars_file) {
-    errs() << "WARNING: Cannot open deviceVars.txt. File may not exist.\n";
+    errs() << "WARNING: Cannot open deviceVars.decl. File may not exist.\n";
     return vars;
   }
 

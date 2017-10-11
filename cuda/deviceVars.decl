@@ -1,1 +1,2 @@
 __device__ sassi::dictionary<uint64_t, BranchCounter> *sassiStats;
+__device__ unsigned long long *memdiverge_counters;

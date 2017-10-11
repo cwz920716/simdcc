@@ -15,6 +15,7 @@ void before_main_handler(void);
 void after_main_handler(void);
 void before_kernel_handler(void);
 void after_kernel_handler(void);
+void before_reset_handler(void);
 
 }
 

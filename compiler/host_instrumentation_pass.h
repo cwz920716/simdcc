@@ -8,6 +8,7 @@
 
 #define BEFORE_MAIN_HANDLER_FUNCNAME "before_main_handler"
 #define AFTER_MAIN_HANDLER_FUNCNAME "after_main_handler"
+#define BEFORE_DEVICE_RESET_HANDLER_FUNCNAME "before_reset_handler"
 #define BEFORE_KERNEL_HANDLER_FUNCNAME "before_kernel_handler"
 #define AFTER_KERNEL_HANDLER_FUNCNAME "after_kernel_handler"
 
@@ -24,6 +25,7 @@ class HostInstrumentationPass : public llvm::ModulePass {
 
  private:
   bool IsCudaLaunch(const llvm::Instruction *inst);
+  bool IsCudaDeviceReset(const llvm::Instruction *inst);
 };
 
 }  // namespave gpuvm

@@ -22,6 +22,23 @@ bool HostInstrumentationPass::IsCudaLaunch(const llvm::Instruction *inst) {
   return false;
 }
 
+bool HostInstrumentationPass::IsCudaDeviceReset(const llvm::Instruction *inst) {
+  if (inst == nullptr) {
+    return false;
+  }
+
+  LLVM_STRING(cudaDeviceReset);
+  if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
+    if (auto callee = call->getCalledFunction()) {
+      if (callee->getName() == cudaDeviceReset) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 bool HostInstrumentationPass::runOnModule(llvm::Module& module) {
   llvm::ArrayRef<llvm::Type *> void_arg_types;
   llvm::LLVMContext &ctx = module.getContext();
@@ -90,13 +107,21 @@ bool HostInstrumentationPass::runOnModule(llvm::Module& module) {
   }
 
   // instrument cuda launch
-  llvm::StringRef before_kernel_handler_func_name(BEFORE_KERNEL_HANDLER_FUNCNAME);
+  llvm::StringRef
+      before_kernel_handler_func_name(BEFORE_KERNEL_HANDLER_FUNCNAME);
   auto before_kernel_handler =
       module.getOrInsertFunction(before_kernel_handler_func_name,
                                  type_main_handler);
-  llvm::StringRef after_kernel_handler_func_name(AFTER_KERNEL_HANDLER_FUNCNAME);
+  llvm::StringRef
+      after_kernel_handler_func_name(AFTER_KERNEL_HANDLER_FUNCNAME);
   auto after_kernel_handler =
       module.getOrInsertFunction(after_kernel_handler_func_name,
+                                 type_main_handler);
+  // instrument device reset
+  llvm::StringRef
+      before_reset_handler_func_name(BEFORE_DEVICE_RESET_HANDLER_FUNCNAME);
+  auto before_reset_handler =
+      module.getOrInsertFunction(before_reset_handler_func_name,
                                  type_main_handler);
 
   for (auto &func : module) {
@@ -113,6 +138,11 @@ bool HostInstrumentationPass::runOnModule(llvm::Module& module) {
         if (IsCudaLaunch(pred)) {
           builder.SetInsertPoint(inst);
           builder.CreateCall(after_kernel_handler, void_arg);
+        }
+
+        if (IsCudaDeviceReset(inst)) {
+          builder.SetInsertPoint(inst);
+          builder.CreateCall(before_reset_handler, void_arg);
         }
 
         pred = inst;
