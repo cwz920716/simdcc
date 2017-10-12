@@ -30,7 +30,7 @@ string ScopeDesc(Scope s) {
   switch(s) {
     case Thread: return "__thread__";
     case Warp: return "__warp__";
-    case ThreadBlock: return "__threadvlock__";
+    case ThreadBlock: return "__threadblock__";
     case Device: return "__device__";
     case Constant: return "__constant__";
     default: return "__error_scope__";
@@ -98,6 +98,12 @@ IteratableType *DynArray::GetDynArrayTy(DataType dtype) {
   return darray_types[dtype];
 }
 
+FunctionValue *
+FunctionValue::declareFunction(string name, DataType ret_type) {
+  auto ty = new CallableType(name, ret_type);
+  return new FunctionValue(ty);
+}
+
 ConstantInt *ConstantInt::Zero, *ConstantInt::One;
 
 void InitGlang(void) {
@@ -152,7 +158,14 @@ int main(int argc, char **argv) {
   log_op(v_from_ai);
 
   auto pf0 = new ParforOp(ThreadBlock, V, A0);
+  auto visit = FunctionValue::declareFunction("visit");
+  log_value(visit);
+  std::vector<Value *> args; args.push_back(V);
+  auto call = new CallOp(visit, args);
+  log_op(call);
+  pf0->appendOp(call);
   log_op(pf0);
+
   auto J = new IntValue(Thread, "j");
   auto pf1 = new ParforOp(Warp, J, S0);
   log_op(pf1);

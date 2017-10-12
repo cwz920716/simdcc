@@ -38,6 +38,7 @@ enum TypeCode {
   Array,
   Struct,
   NdArray,
+  Callable,
   // GGTL Specific types
   Iteratable,
   WorkList,
@@ -102,6 +103,20 @@ class PointerType: public Type {
 
  private:
   DataType dtype_;
+};
+
+class CallableType: public Type {
+ public:
+  CallableType(string name, DataType ret_type = NilTy):
+      Type(Callable), name_(name), ret_type_(ret_type) {}
+
+  string nice_str() { return "Callable"; }
+  string name() const { return name_; }
+  DataType ret_type() const { return ret_type_; }
+
+ private:
+  string name_;
+  DataType ret_type_;
 };
 
 class IteratableType: public Type {
@@ -271,12 +286,26 @@ class Slice: public IteratableValue {
   IntValue *start_, *end_, *step_; 
 };
 
+class FunctionValue: public Value {
+ public:
+  FunctionValue(CallableType *func_type):
+      Value(func_type, Constant, func_type->name()), func_type_(func_type) {}
+
+  DataType ret_type() const { return func_type_->ret_type(); }
+
+  static FunctionValue *declareFunction(string name, DataType ret_type = NilTy);
+
+ private:
+  CallableType *func_type_;
+};
+
 enum Operator {
   // cxx operators
   Declare,
   Index,
   Assign,
   Binary,
+  Call,
   For,
   While,
   If,
@@ -400,8 +429,8 @@ class AssignOp: public Operation {
 
 class BinaryOp: public Operation {
  public:
-  BinaryOp(Value *lhs, Value *rhs, string bin_op):
-      Operation(Thread, Binary, lhs->type()),
+  BinaryOp(Value *lhs, Value *rhs, string bin_op, DataType type = nullptr):
+      Operation(Thread, Binary, (type != nullptr) ? type : lhs->type()),
       lhs_(lhs), rhs_(rhs), bin_op_(bin_op) {}
 
   string nice_str() {
@@ -413,6 +442,31 @@ class BinaryOp: public Operation {
   string bin_op_;
 };
 
+class CallOp: public Operation {
+ public:
+  CallOp(FunctionValue *function, std::vector<Value *> &args):
+      Operation(Thread, Call, function->ret_type()),
+      function_(function), args_(args) {}
+
+  FunctionValue *function() const { return function_; }
+
+  string nice_str() {
+    string res = function_->nice_str() + "(";
+    for (int i = 0; i < args_.size(); i++) {
+      if (i > 0) {
+        res += ", ";
+      }
+      res += args_[i]->nice_str();
+    }
+    res += ")";
+    return res;
+  }
+
+ private:
+  FunctionValue *function_;
+  std::vector<Value *> args_;
+};
+
 class ParforOp: public Operation {
  public:
   ParforOp(Scope scope, Value *it, IteratableValue *container):
@@ -420,6 +474,10 @@ class ParforOp: public Operation {
 
   void appendOp(Operation *op) {
     body_.push_back(op);
+  }
+
+  vector<Operation *> &body() {
+    return body_;
   }
 
   Value *start() {
@@ -478,8 +536,11 @@ class ParforOp: public Operation {
 
     std::string res = comment_str() + "\nfor(" + decl_i->nice_str() +
                       "; " + end_cond->nice_str() + "; " + incr_i->nice_str() +
-                      ") { " + (decl_it? (decl_it->nice_str() + ";") : "") +
-                       " ... }";
+                      ") { " + (decl_it? (decl_it->nice_str() + "; ") : "");
+    for (auto stmt : body_) {
+      res += stmt->nice_str(); + "; ";
+    }
+    res += "}";
     return res;
   }
 
@@ -495,6 +556,35 @@ class ParforOp: public Operation {
    Value *iterator_;
    IteratableValue *container_;
    vector<Operation *> body_;
+};
+
+class WhileOp: public Operation {
+ public:
+  WhileOp(Value *cond):
+      Operation(Thread, While), cond_(cond) {}
+
+  void appendOp(Operation *op) {
+    body_.push_back(op);
+  }
+
+  vector<Operation *> &body() {
+    return body_;
+  }
+
+  string nice_str() {
+    std::string res = comment_str();
+    res += "while (" +cond_->nice_str() + ")";
+    res += " { ";
+    for (auto stmt : body_) {
+      res += stmt->nice_str(); + "; ";
+    }
+    res += "}";
+    return res;
+  }
+
+ private:
+  Value *cond_;
+  vector<Operation *> body_;
 };
 
 class DynArray: public IteratableValue {
