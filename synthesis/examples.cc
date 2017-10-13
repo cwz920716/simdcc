@@ -8,8 +8,22 @@ __task__ void warp_gather(Vertex[] Vertices) {
   __device__ parfor(auto v : Vertices) {
     __thread__ Vertex[] adj = v.neighbours;
     __thread__ bool adj_valid = adj.size > 0;
-    __warp__ enlist(adj_valid, adj -> arg0) {
-      __warp__ parfor(v : leader.arg0) {
+    __warp__ enlist(adj_valid, adj) {
+      __warp__ parfor(v : adj) {
+        visit(v);
+      }
+    }
+  }
+}
+
+__task__ void warp_gather_middle(Vertex[] Vertices) {
+  __device__ parfor(auto v : Vertices) {
+    __thread__ Vertex[] adj = v.neighbours;
+    __thread__ bool adj_valid = adj.size > 0;
+   while(__warp__ any(adj_valid) {
+      __thread__ int leader_id = __warp__ leader();
+      __thread__ Vertex[] obj = __warp__ broadcast(leader_id, adj);
+      __warp__ parfor(v : ) {
         visit(v);
       }
     }
@@ -26,7 +40,7 @@ __task__ void warp_gather_detail(Vertex[] Vertices) {
       if (Leader[0] == lane_id) {
         Leader[1] = v;
       }
-      __warp__ parfor (w : Leader[1]) {
+      __warp__ parfor (w : Leader[1].neighbours) {
         visit(w);
       }
     }

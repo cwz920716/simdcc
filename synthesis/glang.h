@@ -1,7 +1,7 @@
 #ifndef _SYNTHESIS_GLANG_H
 #define _SYNTHESIS_GLANG_H
 
-// GPU Graph Traversal Language (glang)
+// GPU Primitive Language (glang) for BFS Graph Traversal
 
 #include <string>
 #include <sstream>
@@ -193,6 +193,17 @@ class IntValue: public Value {
 
   static IntValue *CreateIntValue(Scope s, string name, int bw = 32);
 
+  static IntValue *UniqueId(Scope s) {
+    switch (s) {
+      case Device: return global_id;
+      case ThreadBlock: return thread_id;
+      case Warp: return lane_id;
+      default:
+        LOG(FATAL) << "Do not support scope " << ScopeDesc(s);
+        return nullptr;
+    }
+  }
+
   bool isConstant() const { return is_constant_; }
 
   virtual bool isStatic() const { return false; }
@@ -309,6 +320,7 @@ enum Operator {
   For,
   While,
   If,
+  BasicBlock,
   // parallel operators
   ParallelLoad,
   AtomicOp,
@@ -318,7 +330,7 @@ enum Operator {
   While_uni,
   If_uni,
   Any,
-  Ballot,
+  Broadcast,
   Enlist,
   Singleton,
   Barrier,
@@ -423,6 +435,7 @@ class AssignOp: public Operation {
 };
 
 #define BIN_OP_LT "<"
+#define BIN_OP_EQ "=="
 #define BIN_OP_ADD "+"
 #define BIN_OP_MUL "*"
 #define BIN_OP_INC "+="
@@ -584,6 +597,142 @@ class WhileOp: public Operation {
 
  private:
   Value *cond_;
+  vector<Operation *> body_;
+};
+
+class IfOp: public Operation {
+ public:
+  IfOp(Value *cond):
+      Operation(Thread, If), cond_(cond) {}
+
+  void appendThenOp(Operation *op) {
+    then_body_.push_back(op);
+  }
+
+  void appendElseOp(Operation *op) {
+    else_body_.push_back(op);
+  }
+
+  vector<Operation *> &then_body() {
+    return then_body_;
+  }
+
+  vector<Operation *> &else_body() {
+    return else_body_;
+  }
+
+  bool hasElse() {
+    return !else_body_.empty();
+  }
+
+  string nice_str() {
+    std::string res = "";
+    res += "if (" +cond_->nice_str() + ")";
+    res += " { ";
+    for (auto stmt : then_body_) {
+      res += stmt->nice_str() + "; ";
+    }
+    res += "}";
+    if (hasElse()) {
+      res += "else {";
+      for (auto stmt : else_body_) {
+        res += stmt->nice_str() + "; ";
+      }
+      res += "}";
+    }
+    return res;
+  }
+
+ private:
+  Value *cond_;
+  vector<Operation *> then_body_;
+  vector<Operation *> else_body_;
+};
+
+class BarrierOp: public Operation {
+ public:
+  BarrierOp(Scope scope): Operation(scope, Barrier) {}
+
+  string nice_str() {
+    if (scope_ == Warp) {
+      return "/* __warp_sync(); */";
+    }
+
+    if (scope_ == ThreadBlock) {
+      return "__synthreads()";
+    }
+
+    if (scope_ == Device) {
+      return "__gpu_sync()";
+    }
+
+    LOG(FATAL) << "Barrier do not support scope " << ScopeDesc(scope_);
+    return "";
+  }
+};
+
+class AnyOp: public Operation {
+ public:
+  AnyOp(Scope scope, Value *cond):
+      Operation(scope, Any, IntType::GetIntegerTy()), cond_(cond) {}
+
+  string nice_str() {
+    if (scope_ == Warp) {
+      return "__ballot(" + cond_->nice_str() + ")";
+    }
+
+    if (scope_ == ThreadBlock) {
+      return "__threadblock_any(" + cond_->nice_str() + ")";
+    }
+
+    if (scope_ == Device) {
+      return "__gpu_any(" + cond_->nice_str() + ")";
+    }
+
+    LOG(FATAL) << "Any do not support scope " << ScopeDesc(scope_);
+    return "";
+  }
+
+ private:
+  Value *cond_;
+};
+
+class BroadcastOp: public Operation {
+ public:
+  BroadcastOp(Scope scope, IntValue *id, Value *obj, Value *target):
+    Operation(scope, Broadcast, obj->type()),
+    id_(id), obj_(obj), target_(target) {}
+
+  string nice_str() {
+    auto unique_id = IntValue::UniqueId(scope_);
+    auto cmp_id = new BinaryOp(unique_id, id_, BIN_OP_EQ);
+    auto if_ = new IfOp(cmp_id);
+    if_->appendThenOp(new AssignOp(target_, obj_));
+    auto sync = new BarrierOp(scope_);
+    return if_->nice_str() + " " + sync->nice_str();
+  }
+
+ private:
+  IntValue *id_;
+  Value *obj_, *target_;
+};
+
+class EnlistOp: public Operation {
+ public:
+  EnlistOp(Scope scope, Value *cond, Value *broadcast):
+    Operation(scope, Enlist), cond_(cond), broadcast_(broadcast) {}
+
+  void appendOp(Operation *op) {
+    body_.push_back(op);
+  }
+
+  vector<Operation *> &body() {
+    return body_;
+  }
+
+ private:
+  Value *cond_;
+  Value *broadcast_;
   vector<Operation *> body_;
 };
 

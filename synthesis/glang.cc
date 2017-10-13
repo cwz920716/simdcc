@@ -170,5 +170,8 @@ int main(int argc, char **argv) {
   auto pf1 = new ParforOp(Warp, J, S0);
   log_op(pf1);
 
+  auto B0 = new BroadcastOp(ThreadBlock, V, I, J);
+  log_op(B0);
+
   return 0;
 }
