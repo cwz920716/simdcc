@@ -1,5 +1,5 @@
-#ifndef _SYNTHESIS_GLANG_H
-#define _SYNTHESIS_GLANG_H
+#ifndef __SYNTHESIS_GLANG_H
+#define __SYNTHESIS_GLANG_H
 
 // GPU Primitive Language (glang) for BFS Graph Traversal
 
@@ -37,7 +37,6 @@ enum TypeCode {
   Pointer,
   Array,
   Struct,
-  NdArray,
   Callable,
   // GGTL Specific types
   Iteratable,
@@ -58,6 +57,14 @@ class Type {
     std::string ty = "typeof(";
     ty += to_string(typecode_) + ")";
     return ty;
+  }
+
+  virtual string dim_str() {
+    return "";
+  }
+
+  virtual Type *dtype() {
+    return this;
   }
 
  protected:
@@ -135,6 +142,39 @@ class IteratableType: public Type {
   DataType dtype_;
 };
 
+class ArrayType: public Type {
+ public:
+  ArrayType(DataType dtype, const vector<int> &dim):
+      Type(Array), dtype_(dtype), dim_(dim) {}
+  ArrayType(DataType dtype, int dim0):
+      Type(Array), dtype_(dtype) { dim_.push_back(dim0); }
+  ArrayType(DataType dtype, int dim0, int dim1):
+      Type(Array), dtype_(dtype) { dim_.push_back(dim0); dim_.push_back(dim1); }
+  ArrayType(DataType dtype, int dim0, int dim1, int dim2):
+      Type(Array), dtype_(dtype) { 
+        dim_.push_back(dim0); dim_.push_back(dim1); dim_.push_back(dim2);
+      }
+
+  virtual string nice_str() {
+    return dtype_->nice_str();
+  }
+
+  virtual string dim_str() {
+    string res = "";
+    for (auto i : dim_) {
+      res += "[" + std::to_string(i) + "]";
+    }
+    return res;
+  }
+
+  vector<int> dim() const { return dim_; }
+  DataType dtype() const { return dtype_; }
+
+ protected:
+  DataType dtype_;
+  vector<int> dim_;
+};
+
 enum Scope {
   Thread,
   Warp,
@@ -159,6 +199,9 @@ class Value {
   int id() const { return id_; }
   string name() const { return name_; }
   DataType type() const { return type_; }
+  // base type may be different from type for polymorphic types such as pointers
+  // arrays, etc.
+  virtual DataType dtype() const { return type_->dtype(); }
   Scope scope() const { return scope_; }
 
   virtual string comment_str() {
@@ -253,10 +296,6 @@ class PointerValue: public Value {
   static PointerValue *CreatePtrValue(Scope s, string name, DataType dtype);
 
   int addr_space() const { return addr_space_; }
-  DataType dtype() const {
-    PointerType *ty = dynamic_cast<PointerType *> (type_);
-    return ty->dtype();
-  }
 
  private:
   int addr_space_;
@@ -310,6 +349,30 @@ class FunctionValue: public Value {
   CallableType *func_type_;
 };
 
+class Parameter: public Value {
+ public:
+  Parameter(Value *wrapped):
+    Value(wrapped->type(), wrapped->scope(), wrapped->name() + "_param"),
+    wrapped_(wrapped) {}
+
+  Parameter(DataType type, Scope scope, const string &name):
+    Value(type, scope, name), wrapped_(nullptr) {}
+
+  virtual string nice_str() {
+    if (wrapped_) {
+      return wrapped_->nice_str();
+    } else {
+      return Value::nice_str();
+    }
+  }
+
+  void wrap(Value *wrapped) { wrapped_ = wrapped; }
+  Value *unwrap() const { return wrapped_; }
+
+ private:
+  Value *wrapped_;
+};
+
 enum Operator {
   // cxx operators
   Declare,
@@ -355,14 +418,16 @@ class Operation: public Value {
 
 class DeclareOp: public Operation {
  public:
-  DeclareOp(Value *var, Value *init = nullptr, Scope scope = Thread):
-      Operation(scope, Declare), var_(var), init_(init) {}
+  DeclareOp(Value *var, Value *init = nullptr):
+      Operation(var->scope(), Declare), var_(var), init_(init) {}
 
   Value *var() const { return var_; }
   Value *init() const { return init_; }
 
   string nice_str() {
-    auto decl = var_->type()->nice_str() + " " + var_->nice_str();
+    auto decl =
+        var_->type()->nice_str() + " " + var_->nice_str() +
+        var_->type()->dim_str();
     if (init_) {
       decl += " = " + init_->nice_str();
     }
@@ -374,7 +439,8 @@ class DeclareOp: public Operation {
 
     if (scope_ == ThreadBlock) {
       auto decl = string(SHARED) + " " +
-                  var_->type()->nice_str() + " " + var_->name();
+                  var_->type()->nice_str() + " " + var_->name() + 
+                  var_->type()->dim_str();
       if (init_) {
         decl += " = " + init_->nice_str();
       }
@@ -386,13 +452,14 @@ class DeclareOp: public Operation {
       CHECK(init_ == nullptr) << "not support __warp__ initializer yet.";
       auto decl = string(SHARED) + " " +
                   var_->type()->nice_str() + " " + var_->name() +
-                  "[" + WARP_SIZE_STR + "]";
+                  "[" + WARP_SIZE_STR + "]" + var_->type()->dim_str();
       return decl;
     }
 
     if (scope_ == Device) {
       auto decl = string(DEVICE) + " " +
-                  var_->type()->nice_str() + " " + var_->name();
+                  var_->type()->nice_str() + " " + var_->name() +
+                  var_->type()->dim_str();
       if (init_) {
         decl += " = " + init_->nice_str();
       }
@@ -407,18 +474,41 @@ class DeclareOp: public Operation {
 
 class IndexOp: public Operation {
  public:
-  IndexOp(PointerValue *base, IntValue *offset):
-      Operation(Thread, Index, base->dtype()), base_(base), offset_(offset) {}
+  IndexOp(Value *base, vector<Value *> offsets):
+      Operation(Thread, Index, base->dtype()), base_(base), offsets_(offsets) {}
 
-  PointerValue *base() const { return base_; }
-  IntValue *offset() const { return offset_; }
+  IndexOp(Value *base, Value *offset):
+      Operation(Thread, Index, base->dtype()),
+      base_(base) { offsets_.push_back(offset); }
+  IndexOp(Value *base, Value *offset0, Value *offset1):
+      Operation(Thread, Index, base->dtype()),
+      base_(base) { offsets_.push_back(offset0); offsets_.push_back(offset1); }
+  IndexOp(Value *base, Value *offset0, Value *offset1, Value *offset2):
+      Operation(Thread, Index, base->dtype()),
+      base_(base) {
+    offsets_.push_back(offset0);
+    offsets_.push_back(offset1);
+    offsets_.push_back(offset2);
+  }
+
+  Value *base() const { return base_; }
+  vector<Value *> offsets() const { return offsets_; }
+  Value *offset(int i = 0) const { return offsets_[i]; }
   string nice_str() {
-    return base_->nice_str() + "[" + offset_->nice_str() + "]";
+    return base_->nice_str() + idx_str();
+  }
+
+  string idx_str() {
+    string res;
+    for (auto i : offsets_) {
+      res += "[" + i->nice_str() + "]";
+    }
+    return res;
   }
 
  private:
-  PointerValue *base_;
-  IntValue *offset_;
+  Value *base_;
+  vector<Value *> offsets_;
 };
 
 class AssignOp: public Operation {
@@ -760,18 +850,30 @@ class DynArray: public IteratableValue {
     return new IndexOp(data_, iter);
   }
 
-  DataType dtype() const {
-    IteratableType *ty = dynamic_cast<IteratableType *> (type_);
-    return ty->dtype();
-  }
-
  private:
   PointerValue *data_;
   IntValue *length_;
+};
+
+class Task {
+ public:
+  Task(string name, const vector<Value *> &args): name_(name), args_(args) {}
+
+  Task *inlined(vector<Value *> args) { return nullptr; }
+
+ private:
+  string name_;
+
+  vector<Value *> args_;
+  vector<Operation *> body_;
+
+  vector<Value *> in_args_;  // read only
+  vector<Value *> out_args_;  // write only
+  vector<Value *> mod_args_;  // rw
 };
 
 void InitGlang(void);
 
 }  // namespace glang
 
-#endif  // _SYNTHESIS_GLANG_H
+#endif  // __SYNTHESIS_GLANG_H

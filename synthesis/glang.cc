@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
   log_value(A0->reference(C0));
 
   auto I = new IntValue(Thread, "i");
-  auto decl_i = new DeclareOp(I, A0->reference(I), ThreadBlock);
+  auto decl_i = new DeclareOp(I, A0->reference(I));
   log_op(decl_i);
 
   auto V = new IntValue(Thread, "v");
@@ -172,6 +172,11 @@ int main(int argc, char **argv) {
 
   auto B0 = new BroadcastOp(ThreadBlock, V, I, J);
   log_op(B0);
+
+  auto AT = new ArrayType(IntType::GetIntegerTy(), 256, 256, 3);
+  auto A1 = new Value(AT, Warp, "img");
+  log_op(new DeclareOp(A1));
+  log_op(new IndexOp(A1, I, J, I));
 
   return 0;
 }
