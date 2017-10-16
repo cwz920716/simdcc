@@ -54,8 +54,13 @@ class InstStatistics {
       if (inst->getDebugLoc()) {
         loc = inst->getDebugLoc().getLine();
       }
-      db += type_str + "(" + to_string(id) + "): line "
-            + to_string(loc) + "\n";
+
+      std::string inst_str;
+      llvm::raw_string_ostream rso(inst_str);
+      inst->print(rso);
+
+      db += type_str + "(" + to_string(id) + "):" + inst_str + " @line " +
+            to_string(loc) + "\n";
     }
     return db;
   }

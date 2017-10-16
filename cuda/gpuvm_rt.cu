@@ -193,7 +193,7 @@ void finalize(void) {
   for (unsigned m = 0; m <= WARP_SIZE; m++) {
     fprintf(rf, "%-2d> ", m);
     for (unsigned u = 0; u <= WARP_SIZE; u++) {
-      fprintf(rf, "%-4llu ", memdiverge_counters_h[m * MEMDIVERGE_SIZE + u]);
+      fprintf(rf, "%-10llu ", memdiverge_counters_h[m * MEMDIVERGE_SIZE + u]);
     }
     fprintf(rf, "\n");
   }
