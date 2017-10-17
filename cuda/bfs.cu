@@ -196,17 +196,23 @@ void BFSGraph(int argc, char **argv) {
     dim3 grid(num_of_blocks, 1, 1);
     dim3 threads(num_of_threads_per_block, 1, 1);
 
+    cudaEvent_t start_e, stop_e;
+    cudaEventCreate(&start_e);
+    cudaEventCreate(&stop_e);
+
     int k = 0;
     printf("Start traversing the tree\n");
     bool stop;
     // Call the Kernel untill all the elements of Frontier are not false
+    cudaEventRecord(start_e);
+
     do {
         // if no thread changes this value then the loop stops
         stop = false;
         cudaMemcpy(d_over, &stop, sizeof(bool), cudaMemcpyHostToDevice);
 
         PROFILE((
-            Kernel<<<grid, threads, 0>>>(d_graph_nodes, d_graph_edges, d_graph_mask,
+            Kernel_ir<<<grid, threads, 0>>>(d_graph_nodes, d_graph_edges, d_graph_mask,
                                          d_updating_graph_mask, d_graph_visited,
                                          d_cost, no_of_nodes)
         ));
@@ -220,8 +226,12 @@ void BFSGraph(int argc, char **argv) {
         k++;
     } while (stop);
 
+    cudaEventRecord(stop_e);
+    cudaEventSynchronize(stop_e);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start_e, stop_e);
 
-    printf("Kernel Executed %d times\n", k);
+    printf("Kernel Executed %d times for %f ms\n", k, milliseconds);
 
     // copy result from device to host
     cudaMemcpy(h_cost, d_cost, sizeof(int) * no_of_nodes,
