@@ -214,6 +214,7 @@ void before_reset_handler(void) {
     return;
   }
 
+  printf("Cuda device reset.\n");
   finalize();
   device_reset = true;
 }
