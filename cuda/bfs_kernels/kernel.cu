@@ -43,7 +43,7 @@ __global__ void Kernel(Node *g_graph_nodes, int *g_graph_edges,
         for (int i = g_graph_nodes[tid].starting;
              i < (g_graph_nodes[tid].no_of_edges + g_graph_nodes[tid].starting);
              i++) {
-            clock_block(1e5);
+            clock_block(1e4);
             int id = g_graph_edges[i];
             if (!g_graph_visited[id]) {
                 g_cost[id] = g_cost[tid] + 1;
@@ -79,7 +79,7 @@ __global__ void Kernel_ir(Node *g_graph_nodes, int *g_graph_edges,
         for (int i = g_graph_nodes[tid].starting;
              i < (g_graph_nodes[tid].no_of_edges + g_graph_nodes[tid].starting);
              i++) {
-            clock_block(1e5);
+            clock_block(1e4);
             int id = g_graph_edges[i];
             if (!g_graph_visited[id]) {
                 g_cost[id] = g_cost[tid] + 1;
