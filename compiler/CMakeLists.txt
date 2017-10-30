@@ -12,6 +12,7 @@ target_link_libraries( llvm-culink ${llvm_libs} ${Boost_LIBRARIES} )
 set(cuda_gpuvm_src
   cond_branch_analysis_pass.cc
   host_instrumentation_pass.cc
+  dynamic_cuda_transform_pass.cc
   kernel_info_pass.cc
   memory_analysis_pass.cc
 )
