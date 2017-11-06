@@ -1,7 +1,8 @@
 #include <glog/logging.h>
 
-#include "dynamic_cuda_transform_pass.h"
+#include "base.h"
 #include "cuda_utils.h"
+#include "dynamic_cuda_transform_pass.h"
 
 namespace gpuvm {
 
@@ -14,7 +15,24 @@ class CudaLaunchVisitor: public llvm::InstVisitor<CudaLaunchVisitor> {
     if (IsCudaLaunch(&call)) {
       // do something...
       CHECK(call.getNumArgOperands() > 0);
+      insertRegistry(call, call.getArgOperand(0));
     }
+  }
+
+  void insertRegistry(llvm::Instruction &inst, llvm::Value *hostFun) {
+    llvm::Module *module = parent_->getParent();
+    llvm::LLVMContext &ctx = module->getContext();
+    // get callback function.
+    llvm::Function *reg_handler =
+        module->getFunction(DYN_CUDA_REGISTER_FUNC_FUNCNAME);
+    CHECK(reg_handler != nullptr);
+
+    llvm::IRBuilder<> builder(&inst);
+    auto name = builder.CreateGlobalStringPtr(parent_->getName());
+    llvm::SmallVector<llvm::Value *, 2> args;
+    args.push_back(hostFun);
+    args.push_back(name);
+    builder.CreateCall(reg_handler, args);
   }
 
  private:
@@ -59,11 +77,15 @@ bool DynamicCudaTransformPass::runOnModule(llvm::Module& module) {
       module.getOrInsertFunction(destroy_dyn_cuda_func_name,
                                  type_void_handler);
 
-  FunctionRenamer func_renamer;
-  func_renamer.map("cudaConfigureCall", "dynamicCudaConfigureCall")
-              .map("cudaSetupArgument", "dynamicCudaSetupArgument")
-              .map("cudaLaunch", "dynamicCudaLaunch")
-              .runOnModule(module);
+  // Declare a function prototype:
+  // void dynamicCudaRegisterFunction(void *hostFun, const char *name);
+  llvm::Type *type_int8 = llvm::IntegerType::get(ctx, 8);
+  llvm::SmallVector<llvm::Type *, 2> param_types(2,
+      llvm::PointerType::get(type_int8, GENERIC_ADDR_SPACE));
+  auto type_func = llvm::FunctionType::get(type_void, param_types, false);
+  llvm::StringRef func_name(DYN_CUDA_REGISTER_FUNC_FUNCNAME);
+  auto dyn_cuda_register_func_handler =
+      module.getOrInsertFunction(func_name, type_func);
 
   LLVM_STRING(main);
   llvm::ArrayRef<llvm::Value *> void_arg;
@@ -120,6 +142,13 @@ bool DynamicCudaTransformPass::runOnModule(llvm::Module& module) {
     CudaLaunchVisitor cuda_launch_visitor(&func);
     cuda_launch_visitor.visit(func);
   }
+
+  // rename cuda functions
+  FunctionRenamer func_renamer;
+  func_renamer.map("cudaConfigureCall", "dynamicCudaConfigureCall")
+              .map("cudaSetupArgument", "dynamicCudaSetupArgument")
+              .map("cudaLaunch", "dynamicCudaLaunch")
+              .runOnModule(module);
 }
 
 void DynamicCudaTransformPass::getAnalysisUsage(llvm::AnalysisUsage &AU) const

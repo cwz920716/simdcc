@@ -11,9 +11,11 @@ inline bool IsCudaLaunch(const llvm::Instruction *inst) {
   }
 
   LLVM_STRING(cudaLaunch);
+  LLVM_STRING(dynamicCudaLaunch);
   if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
     if (auto callee = call->getCalledFunction()) {
-      if (callee->getName() == cudaLaunch) {
+      if (callee->getName() == cudaLaunch ||
+          callee->getName() == dynamicCudaLaunch) {
         return true;
       }
     }

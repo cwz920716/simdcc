@@ -14,6 +14,7 @@
 #define DYN_CUDA_CONFIG_CALL_FUNCNAME "dynamicCudaConfigureCall"
 #define DYN_CUDA_SETUP_ARGS_FUNCNAME "dynamicCudaSetupArgument"
 #define DYN_CUDA_LAUNCH_FUNCNAME "dynamicCudaLaunchByName"
+#define DYN_CUDA_REGISTER_FUNC_FUNCNAME "dynamicCudaRegisterFunction"
 
 namespace gpuvm {
 
