@@ -20,7 +20,7 @@ __task__ void warp_gather_middle(Vertex[] Vertices) {
   __device__ parfor(auto v : Vertices) {
     __thread__ Vertex[] adj = v.neighbours;
     __thread__ bool adj_valid = adj.size > 0;
-   while(__warp__ any(adj_valid) {
+    while(__warp__ any(adj_valid) {
       __thread__ int leader_id = __warp__ leader();
       __thread__ Vertex[] obj = __warp__ broadcast(leader_id, adj);
       __warp__ parfor(v : ) {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 
-project(SimdSim)
+project(SimdCC)
 
 set (CMAKE_CXX_STANDARD 11)
 
@@ -19,11 +19,14 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
-INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+include_directories( ${Boost_INCLUDE_DIR} )
+
+include_directories(common)
+include_directories(cub-1.7.4)
 
 if (CUDA_FOUND)
   message("CUDA found")
-  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_35,code=sm_35)
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_35,code=sm_35;-std=c++11;--expt-extended-lambda)
   add_subdirectory(cuda)
 else()
   message("Error: CUDA not found!")

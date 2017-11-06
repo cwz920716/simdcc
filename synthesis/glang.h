@@ -624,6 +624,23 @@ class ParforOp: public Operation {
     }
   }
 
+  Value *end() {
+    IntValue *par_limit = nullptr;
+    switch(scope_) {
+      case Warp: par_limit = IntValue::WARP_SIZE; break;
+      case ThreadBlock: par_limit = IntValue::TB_SIZE; break;
+      case Device: par_limit = IntValue::GLOBAL_SIZE; break;
+      default: break;
+    }
+    CHECK(par_limit);
+    std::vector<Value *> args;
+    args.push_back(container_->end());
+    args.push_back(par_limit);
+    auto round_up =
+        FunctionValue::declareFunction("round_up", IntType::GetIntegerTy());
+    return new CallOp(round_up, args);
+  }
+
   string nice_str() {
     IntValue *i = new IntValue(Thread, i_name());
     Value *ref = container_->reference(i);
@@ -634,7 +651,7 @@ class ParforOp: public Operation {
     }
 
     auto decl_i = new DeclareOp(i, start());
-    auto end_cond = new BinaryOp(i, container_->end(), BIN_OP_LT);
+    auto end_cond = new BinaryOp(i, end(), BIN_OP_LT);
     auto incr_i = new BinaryOp(i, step(), BIN_OP_INC);
 
     std::string res = comment_str() + "\nfor(" + decl_i->nice_str() +
