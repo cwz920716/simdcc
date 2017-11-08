@@ -22,9 +22,34 @@ enum Scope {
   kDeviceScope,
 };
 
-#define WARP_SZ 32
 DEVICE
-inline int lane_id(void) { return threadIdx.x % WARP_SZ; }
+unsigned int round_up(unsigned int value, unsigned int round_to) {
+    return (value + (round_to - 1)) & ~(round_to - 1);
+}
+
+#define WARP_SZ 32
+
+DEVICE int lane_id(void) { return threadIdx.x % WARP_SZ; }
+
+template<Scope S>
+DEVICE int self_id() {
+  switch(S) {
+    case kWarpScope: return lane_id();
+    case kBlockScope: return threadIdx.x;
+    case kDeviceScope: return blockIdx.x * blockDim.x + threadIdx.x;
+  }
+  return 0;
+}
+
+template<Scope S>
+DEVICE int scope_size() {
+  switch(S) {
+    case kWarpScope: return WARP_SZ;
+    case kBlockScope: return blockDim.x;
+    case kDeviceScope: return gridDim.x * blockDim.x;
+  }
+  return 0;
+}
 
 }  // glang
 

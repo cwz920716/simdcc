@@ -22,7 +22,7 @@ class Iteratable {
 
 class Slice: public Iteratable<int> {
  public:
-  Slice(int start, int end, int step = 1):
+  GLANG Slice(int start, int end, int step = 1):
     start_(start), end_(end), step_(step) {}
 
   virtual GLANG int start() const {
@@ -51,7 +51,7 @@ class Slice: public Iteratable<int> {
 };
 
 template<typename T>
-class DynArray: public Iteratable<int> {
+class DynArray: public Iteratable<T> {
  public:
   DynArray(int size, T *data):
     size_(size), data_(data) {}
@@ -80,6 +80,10 @@ class DynArray: public Iteratable<int> {
     }
 
     return data_[idx];
+  }
+
+  virtual GLANG T &operator[](int idx) {
+    return reference(idx);
   }
 
  protected:
