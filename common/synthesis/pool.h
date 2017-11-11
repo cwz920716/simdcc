@@ -20,7 +20,7 @@ struct BlockPool {
       cub::WarpScan<Int>,
       cub::BlockScan<Int, BLOCK_DIM_X>>::Type::TempStorage ScanTempStorage;
 
-  static constexpr int POOL_SZ = BLOCK_DIM_X / ((S == kWarpScope) ? WARP_SZ : 1);
+  static constexpr int POOL_SZ = BLOCK_DIM_X / ((S == kWarpScope) ? WARP_SZ : BLOCK_DIM_X);
 
   struct TempStorage {
     ScanTempStorage scan_storage[POOL_SZ];

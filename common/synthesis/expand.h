@@ -26,7 +26,7 @@ struct Expand {
   DEVICE void operator() (DynArray<T> Input,
                           nvstd::function<void(T &)> exec) {
     int idx = self_id<S>() * Input.step() + Input.start();
-    T &item = Input.reference(idx);
+    T item = Input.reference(idx);
     exec(item);
   }
 

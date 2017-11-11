@@ -12,18 +12,35 @@ class Iteratable {
   virtual GLANG int end() const = 0;
   virtual GLANG int step() const = 0;
 
-  virtual GLANG bool readonly() const {
-    return false;
+  virtual GLANG int size() const {
+    return (end() - start()) / step();
   }
-  virtual GLANG bool no_reference() const {
+
+  virtual GLANG int translate(int idx) {
+    return start() + idx * step();
+  }
+
+  virtual GLANG T reference(int idx) = 0;
+
+  virtual GLANG T operator[](int idx) {
+    return reference(idx);
+  }
+
+  virtual GLANG bool readonly() const {
     return false;
   }
 };
 
 class Slice: public Iteratable<int> {
  public:
+  GLANG Slice():
+    start_(-1), end_(-1), step_(1) {}
   GLANG Slice(int start, int end, int step = 1):
-    start_(start), end_(end), step_(step) {}
+    start_(start), end_(end), step_(step) {
+    if (end_ < start_) {
+      end_ = start_;
+    }
+  }
 
   virtual GLANG int start() const {
     return start_;
@@ -37,11 +54,11 @@ class Slice: public Iteratable<int> {
     return step_;
   }
 
-  virtual GLANG bool readonly() const {
-    return true;
+  virtual GLANG int reference(int idx) {
+    return translate(idx);
   }
 
-  virtual GLANG bool no_reference() const {
+  virtual GLANG bool readonly() const {
     return true;
   }
 
@@ -53,6 +70,8 @@ class Slice: public Iteratable<int> {
 template<typename T>
 class DynArray: public Iteratable<T> {
  public:
+  DynArray():
+    size_(0), data_(nullptr) {}
   DynArray(int size, T *data):
     size_(size), data_(data) {}
   DynArray(int size, T *data, T &halo):
@@ -74,16 +93,12 @@ class DynArray: public Iteratable<T> {
     return data_;
   }
 
-  virtual GLANG T &reference(int idx) {
+  virtual GLANG T reference(int idx) {
     if (!valid(idx)) {
       return halo_;
     }
 
     return data_[idx];
-  }
-
-  virtual GLANG T &operator[](int idx) {
-    return reference(idx);
   }
 
  protected:

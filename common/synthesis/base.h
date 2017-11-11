@@ -22,14 +22,13 @@ enum Scope {
   kDeviceScope,
 };
 
-DEVICE
-unsigned int round_up(unsigned int value, unsigned int round_to) {
-    return (value + (round_to - 1)) & ~(round_to - 1);
-}
+#define round_up(value, round_to)  ((value) + ((round_to) - 1)) & ~((round_to) - 1)
 
 #define WARP_SZ 32
 
 DEVICE int lane_id(void) { return threadIdx.x % WARP_SZ; }
+
+DEVICE int warp_id(void) { return threadIdx.x / WARP_SZ; }
 
 template<Scope S>
 DEVICE int self_id() {

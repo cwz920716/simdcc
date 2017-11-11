@@ -30,7 +30,7 @@ struct ForEach {
   DEVICE void operator() (DynArray<T> Input,
                           nvstd::function<void(T &)> exec) {
     for (int i = Input.start(); i < Input.end(); i += Input.step()) {
-      T &item = Input.reference(i);
+      T item = Input.reference(i);
       exec(item);
       step_watch();
     }
@@ -70,7 +70,7 @@ struct Parfor {
                           nvstd::function<void(T &)> exec) {
     declare_loop_vars(Input.start(), Input.end(), Input.step());
     for (int i = start; i < end; i += step) {
-      T &item = Input.reference(i);
+      T item = Input.reference(i);
       exec(item);
     }
   }
