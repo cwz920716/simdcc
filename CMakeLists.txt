@@ -33,5 +33,5 @@ else()
 endif()
 
 add_subdirectory(compiler)
-add_subdirectory(emulator)
-add_subdirectory(synthesis)
+#add_subdirectory(emulator)
+#add_subdirectory(synthesis)
